@@ -2,30 +2,46 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
 
-type MarketKind = "match_winner" | "binary" | "multi_outcome";
+export type MarketKind = "match_winner" | "binary" | "multi_outcome";
 
 const KIND_OPTIONS: { kind: MarketKind; label: string; hint: string }[] = [
-  { kind: "match_winner", label: "試合の勝敗", hint: "ホーム/引分/アウェイの3択" },
-  { kind: "binary", label: "Yes / No質問", hint: "例: 特定の選手がスタメンで出るか" },
+  { kind: "binary", label: "Yes / No", hint: "例: 来週末までにドル円は156円台に到達する？" },
+  { kind: "match_winner", label: "試合の勝敗", hint: "ホーム / 引分 / アウェイの3択" },
   { kind: "multi_outcome", label: "複数選択肢", hint: "自由に選択肢を追加（2〜8個）" },
 ];
 
-const ERROR_MESSAGES: Record<string, string> = {
-  kickoff_must_be_future: "キックオフ／締切日時は未来にしてください",
-  home_away_required: "ホーム・アウェイチームを入力してください",
-  invalid_outcome_options: "選択肢は2〜8個で入力してください",
-  duplicate_outcome_keys: "選択肢が重複しています",
-  invalid_outcome_key: "選択肢を空欄にしないでください",
-};
+// "paid" opens the market immediately for a points fee and earns the
+// creator a share of its rake; "free" costs nothing but waits for
+// community approval votes before it opens.
+export type MarketFormMode = "paid" | "free";
 
-export default function ProposeForm() {
+export default function MarketForm({
+  mode,
+  newsArticleId,
+  defaultCategory = "general",
+  defaultKind = "binary",
+  creationCost,
+  creatorFeePct,
+  approvalThreshold,
+  onCreated,
+}: {
+  mode: MarketFormMode;
+  newsArticleId?: string;
+  defaultCategory?: string;
+  defaultKind?: MarketKind;
+  creationCost: number;
+  creatorFeePct: number;
+  approvalThreshold: number;
+  onCreated?: () => void;
+}) {
   const router = useRouter();
-  const [marketKind, setMarketKind] = useState<MarketKind>("match_winner");
+  const [marketKind, setMarketKind] = useState<MarketKind>(defaultKind);
   const [title, setTitle] = useState("");
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
-  const [kickoffTime, setKickoffTime] = useState("");
+  const [closesAt, setClosesAt] = useState("");
   const [description, setDescription] = useState("");
   const [customOptions, setCustomOptions] = useState(["", ""]);
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +49,15 @@ export default function ProposeForm() {
 
   function updateOption(i: number, value: string) {
     setCustomOptions((prev) => prev.map((o, idx) => (idx === i ? value : o)));
+  }
+
+  function reset() {
+    setTitle("");
+    setHomeTeam("");
+    setAwayTeam("");
+    setClosesAt("");
+    setDescription("");
+    setCustomOptions(["", ""]);
   }
 
   async function submit(e: React.FormEvent) {
@@ -52,39 +77,45 @@ export default function ProposeForm() {
               .filter((o) => o.label.length > 0)
           : [];
 
-    const res = await fetch("/api/markets/propose", {
+    const shared = {
+      title,
+      marketKind,
+      description,
+      category: newsArticleId ? defaultCategory : undefined,
+      homeTeam: marketKind === "match_winner" ? homeTeam : undefined,
+      awayTeam: marketKind === "match_winner" ? awayTeam : undefined,
+      outcomeOptions: marketKind === "match_winner" ? undefined : outcomeOptions,
+    };
+
+    const res = await fetch(mode === "paid" ? "/api/markets/create" : "/api/markets/propose", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        marketKind,
-        kickoffTime,
-        description,
-        homeTeam: marketKind === "match_winner" ? homeTeam : undefined,
-        awayTeam: marketKind === "match_winner" ? awayTeam : undefined,
-        outcomeOptions: marketKind === "match_winner" ? undefined : outcomeOptions,
-      }),
+      body: JSON.stringify(
+        mode === "paid"
+          ? { ...shared, closesAt, newsArticleId }
+          : { ...shared, kickoffTime: closesAt }
+      ),
     });
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "unknown" }));
-      setError(ERROR_MESSAGES[body.error] ?? "提案に失敗しました");
+      if (isAuthError(body.error)) {
+        router.push("/login");
+        return;
+      }
+      setError(apiErrorMessage(body.error, "マーケットを作成できませんでした。"));
       setSubmitting(false);
       return;
     }
 
-    setTitle("");
-    setHomeTeam("");
-    setAwayTeam("");
-    setKickoffTime("");
-    setDescription("");
-    setCustomOptions(["", ""]);
+    reset();
     setSubmitting(false);
+    onCreated?.();
     router.refresh();
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 rounded-xl border border-line bg-surface p-4">
+    <form onSubmit={submit} className="space-y-3">
       <div className="space-y-1">
         <span className="text-xs text-ink-muted">お題の種類</span>
         <div className="grid grid-cols-3 gap-2">
@@ -109,12 +140,16 @@ export default function ProposeForm() {
       </div>
 
       <label className="block space-y-1">
-        <span className="text-xs text-ink-muted">タイトル</span>
+        <span className="text-xs text-ink-muted">質問文</span>
         <input
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={marketKind === "match_winner" ? "例: 浦和レッズ vs FC東京" : "例: 開幕戦で〇〇選手はスタメン出場するか？"}
+          placeholder={
+            marketKind === "match_winner"
+              ? "例: 浦和レッズ vs FC東京"
+              : "例: 来週末(8/14)までにドル円は156円台に到達する？"
+          }
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
       </label>
@@ -142,8 +177,12 @@ export default function ProposeForm() {
         </div>
       ) : marketKind === "binary" ? (
         <div className="flex gap-2">
-          <span className="flex-1 text-center text-xs font-bold py-2 rounded-lg border border-line-strong text-ink-muted">はい</span>
-          <span className="flex-1 text-center text-xs font-bold py-2 rounded-lg border border-line-strong text-ink-muted">いいえ</span>
+          <span className="flex-1 text-center text-xs font-bold py-2 rounded-lg border border-line-strong text-ink-muted">
+            はい
+          </span>
+          <span className="flex-1 text-center text-xs font-bold py-2 rounded-lg border border-line-strong text-ink-muted">
+            いいえ
+          </span>
         </div>
       ) : (
         <div className="space-y-2">
@@ -181,32 +220,50 @@ export default function ProposeForm() {
       )}
 
       <label className="block space-y-1">
-        <span className="text-xs text-ink-muted">{marketKind === "match_winner" ? "キックオフ日時" : "判定期限"}</span>
+        <span className="text-xs text-ink-muted">
+          {marketKind === "match_winner" ? "キックオフ日時（ここでベット締切）" : "ベット締切日時"}
+        </span>
         <input
           required
           type="datetime-local"
-          value={kickoffTime}
-          onChange={(e) => setKickoffTime(e.target.value)}
+          value={closesAt}
+          onChange={(e) => setClosesAt(e.target.value)}
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
       </label>
+
       <label className="block space-y-1">
-        <span className="text-xs text-ink-muted">説明（任意）</span>
+        <span className="text-xs text-ink-muted">補足説明（任意）</span>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
+          placeholder="判定基準など。例: 東京市場の終値ベースで判定します。"
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
       </label>
+
       {error && <p className="text-xs text-neg">{error}</p>}
+
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-accent text-white font-semibold py-2.5 disabled:opacity-50"
+        className={`w-full rounded-lg font-bold py-2.5 text-sm disabled:opacity-50 ${
+          mode === "paid" ? "bg-gold text-white" : "bg-accent text-white"
+        }`}
       >
-        {submitting ? "送信中…" : "提案を投稿"}
+        {submitting
+          ? "送信中…"
+          : mode === "paid"
+            ? `${creationCost}pt を支払って公開する`
+            : "無料で提案する"}
       </button>
+
+      <p className="text-[11px] text-ink-faint">
+        {mode === "paid"
+          ? `すぐに公開され、ベットを受け付けます。的中者への配当後に残る運営手数料(テラ銭)のうち ${creatorFeePct}% があなたに支払われます。盛り上がったマーケットほど作成者の取り分が増えます。`
+          : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。作成者への手数料分配はありません。`}
+      </p>
     </form>
   );
 }

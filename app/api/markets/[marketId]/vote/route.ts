@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
 import { voteMarketProposal, rpcErrorStatus, RpcError } from "@/lib/rpc";
-
-const APPROVAL_THRESHOLD = Number(process.env.MARKET_APPROVAL_THRESHOLD ?? 3);
+import { MARKET_APPROVAL_THRESHOLD } from "@/lib/config";
 
 export async function POST(_req: Request, ctx: RouteContext<"/api/markets/[marketId]/vote">) {
   const userId = await getSessionUserId();
@@ -13,7 +12,7 @@ export async function POST(_req: Request, ctx: RouteContext<"/api/markets/[marke
   const { marketId } = await ctx.params;
 
   try {
-    const market = await voteMarketProposal(userId, marketId, APPROVAL_THRESHOLD);
+    const market = await voteMarketProposal(userId, marketId, MARKET_APPROVAL_THRESHOLD());
     return NextResponse.json({ ok: true, market });
   } catch (err) {
     if (err instanceof RpcError) {

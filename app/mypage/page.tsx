@@ -10,6 +10,9 @@ const ENTRY_LABELS: Record<string, string> = {
   bet_payout: "配当",
   bet_refund: "返金",
   treasury_grant: "運営付与",
+  signup_bonus: "🎁 新規登録ボーナス",
+  market_creation_fee: "マーケット作成",
+  creator_fee: "💰 マーケット作成者報酬",
   adjustment: "補正",
 };
 

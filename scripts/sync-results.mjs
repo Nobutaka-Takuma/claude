@@ -34,6 +34,12 @@ async function main() {
   );
 
   console.log(`Checking ${pending.length} locked auto-generated market(s) via provider "${provider.name}"...`);
+  if (pending.length === 0) {
+    console.log(
+      "Nothing to check. A market only becomes eligible once its kickoff time has passed " +
+        "(status 'locked'); run sync-fixtures first if you have no auto-generated markets yet."
+    );
+  }
 
   let settled = 0;
   let stillPending = 0;

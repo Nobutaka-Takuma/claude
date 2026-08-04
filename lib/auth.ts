@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import { query } from "./db";
 import { getSessionUserId } from "./session";
+import { grantSignupBonus } from "./rpc";
+import { SIGNUP_BONUS_POINTS } from "./config";
 import type { Profile } from "./types";
 
 export class AuthError extends Error {}
@@ -28,7 +30,18 @@ export async function signUp(email: string, password: string, username: string) 
     [email, passwordHash, username]
   );
 
-  return result.rows[0].id;
+  const userId = result.rows[0].id;
+
+  // Welcome points. Deliberately not fatal: an account that exists with
+  // no bonus is recoverable, a signup that 500s after creating the row
+  // is not.
+  try {
+    await grantSignupBonus(userId, SIGNUP_BONUS_POINTS());
+  } catch (err) {
+    console.error("signup bonus failed", err);
+  }
+
+  return userId;
 }
 
 export async function login(email: string, password: string) {

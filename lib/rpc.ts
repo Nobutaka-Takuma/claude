@@ -74,6 +74,52 @@ export function proposeMarket(input: ProposeMarketInput) {
   );
 }
 
+export interface CreateMarketInput {
+  userId: string;
+  title: string;
+  marketKind: "match_winner" | "binary" | "multi_outcome";
+  closesAt: string;
+  outcomeOptions: { key: string; label: string }[];
+  description: string | null;
+  category: string;
+  homeTeam: string | null;
+  awayTeam: string | null;
+  newsArticleId: string | null;
+  creationCost: number;
+  creatorFeeBps: number;
+}
+
+// Paid creation: charges creationCost and opens the market immediately,
+// with the creator entitled to creatorFeeBps of its rake on settlement.
+// (proposeMarket above is the free, vote-to-open alternative.)
+export function createMarket(input: CreateMarketInput) {
+  return callRpc<Market>(
+    "select * from create_market($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+    [
+      input.userId,
+      input.title,
+      input.marketKind,
+      input.closesAt,
+      JSON.stringify(input.outcomeOptions),
+      input.description,
+      input.category,
+      input.homeTeam,
+      input.awayTeam,
+      input.newsArticleId,
+      input.creationCost,
+      input.creatorFeeBps,
+    ]
+  );
+}
+
+export async function grantSignupBonus(userId: string, amount: number) {
+  const result = await query<{ grant_signup_bonus: string }>(
+    "select grant_signup_bonus($1, $2)",
+    [userId, amount]
+  );
+  return Number(result.rows[0]?.grant_signup_bonus ?? 0);
+}
+
 export function voteMarketProposal(userId: string, marketId: string, threshold: number) {
   return callRpc<Market>("select * from vote_market_proposal($1, $2, $3)", [
     userId,
@@ -108,6 +154,8 @@ export async function finalizeExpiredMarkets() {
 export function rpcErrorStatus(message: string): number {
   if (
     message.includes("insufficient") ||
+    message.includes("invalid_outcome_options") ||
+    message.includes("invalid_outcome_key") ||
     message.includes("not_open") ||
     message.includes("not_awaiting_result") ||
     message.includes("inactive") ||

@@ -4,6 +4,9 @@ import { formatDateTime, formatPoints } from "@/lib/format";
 const ENTRY_LABELS: Record<string, string> = {
   task_reward: "労働報酬（広告視聴・アンケート）",
   rake_collected: "テラ銭（マーケット手数料）",
+  market_creation_fee: "マーケット作成料",
+  creator_fee: "マーケット作成者への分配（支出）",
+  signup_bonus: "新規登録ボーナス（支出）",
   treasury_grant: "運営付与（支出）",
   adjustment: "補正",
 };

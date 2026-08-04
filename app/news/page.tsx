@@ -1,5 +1,10 @@
 import { getCurrentProfile } from "@/lib/auth";
 import { getNewsFeed, getMarketPools, getCommentsForArticle } from "@/lib/data";
+import {
+  MARKET_CREATION_COST,
+  MARKET_CREATOR_FEE_BPS,
+  MARKET_APPROVAL_THRESHOLD,
+} from "@/lib/config";
 import NewsArticleCard from "@/components/NewsArticleCard";
 import type { MarketPool } from "@/lib/types";
 
@@ -14,12 +19,17 @@ export default async function NewsPage() {
 
   const commentLists = await Promise.all(articles.map((a) => getCommentsForArticle(a.id)));
 
+  const creationCost = MARKET_CREATION_COST();
+  const creatorFeePct = MARKET_CREATOR_FEE_BPS() / 100;
+  const approvalThreshold = MARKET_APPROVAL_THRESHOLD();
+
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-lg font-extrabold">ニュースから予測する</h1>
         <p className="text-xs text-ink-faint mt-1">
-          気になるニュースを読んで、その場でコミュニティの予想に参加してみましょう。
+          ニュースを読んで、その場で予想に参加。気になる論点があればあなたがマーケットを作れます（{creationCost}pt）。
+          あなたのマーケットが盛り上がるほど、テラ銭の{creatorFeePct}%が報酬として入ります。
         </p>
       </div>
 
@@ -36,6 +46,9 @@ export default async function NewsPage() {
               poolsByMarket={poolsByMarket}
               comments={commentLists[i]}
               profile={profile}
+              creationCost={creationCost}
+              creatorFeePct={creatorFeePct}
+              approvalThreshold={approvalThreshold}
             />
           ))}
         </div>

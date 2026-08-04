@@ -72,21 +72,42 @@ async function seedMarkets() {
     return;
   }
 
-  await pool.query(
-    `insert into markets (title, description, category, source, home_team, away_team, kickoff_time, status, rake_bps)
-     values
-     ('浦和レッズ vs 鹿島アントラーズ', 'J1リーグ', 'soccer', 'api_auto', '浦和レッズ', '鹿島アントラーズ', now() + interval '2 days', 'open', 1000),
-     ('FC東京 vs 川崎フロンターレ', 'J1リーグ', 'soccer', 'api_auto', 'FC東京', '川崎フロンターレ', now() + interval '5 days', 'open', 1000),
-     ('横浜F・マリノス vs ガンバ大阪', 'J1リーグ', 'soccer', 'api_auto', '横浜F・マリノス', 'ガンバ大阪', now() - interval '10 minutes', 'locked', 1000)`
-  );
+  // outcome_options must be populated explicitly — the column defaults to
+  // an empty array, and a market with no options renders no betting
+  // buttons at all. Only 'match_winner' markets can derive them from
+  // their team names, which is what this helper does.
+  const matchWinnerOptions = (home, away) =>
+    JSON.stringify([
+      { key: "home", label: home },
+      { key: "draw", label: "引き分け" },
+      { key: "away", label: away },
+    ]);
 
-  await pool.query(
-    `insert into markets (title, description, category, source, home_team, away_team, kickoff_time, status, rake_bps, outcome, resolved_at)
-     values
-     ('セレッソ大阪 vs 名古屋グランパス', 'J1リーグ', 'soccer', 'api_auto', 'セレッソ大阪', '名古屋グランパス', now() - interval '3 days', 'resolved', 1000, 'home', now() - interval '2 days')`
-  );
+  const fixtures = [
+    ["浦和レッズ", "鹿島アントラーズ", "now() + interval '2 days'", "open", null],
+    ["FC東京", "川崎フロンターレ", "now() + interval '5 days'", "open", null],
+    ["横浜F・マリノス", "ガンバ大阪", "now() - interval '10 minutes'", "locked", null],
+    ["セレッソ大阪", "名古屋グランパス", "now() - interval '3 days'", "resolved", "home"],
+  ];
 
-  console.log("seeded markets: 2 open, 1 locked, 1 resolved");
+  for (const [home, away, kickoffExpr, status, outcome] of fixtures) {
+    // resolved_at is computed here rather than in SQL: reusing the status
+    // placeholder inside a CASE makes Postgres try to infer one parameter
+    // as both market_status and text, which it refuses to do.
+    const resolvedAtExpr = status === "resolved" ? "now() - interval '2 days'" : "null";
+    await pool.query(
+      `insert into markets (
+         title, description, category, source, home_team, away_team, kickoff_time,
+         status, rake_bps, market_kind, outcome_options, outcome, resolved_at
+       ) values (
+         $1, 'J1リーグ', 'soccer', 'api_auto', $2, $3, ${kickoffExpr},
+         $4, 1000, 'match_winner', $5, $6, ${resolvedAtExpr}
+       )`,
+      [`${home} vs ${away}`, home, away, status, matchWinnerOptions(home, away), outcome]
+    );
+  }
+
+  console.log("seeded markets: 2 open, 1 locked, 1 resolved (with outcome_options)");
 }
 
 async function seedTreasurySeedCapital() {
@@ -98,7 +119,9 @@ async function seedTreasurySeedCapital() {
     return;
   }
 
-  const amount = 50000;
+  // Sized to cover a good number of 1000pt signup bonuses (grant_signup_bonus
+  // draws from here) plus headroom, so a demo doesn't run the fund dry.
+  const amount = 1_000_000;
   const result = await pool.query(
     "update treasury set balance = balance + $1, updated_at = now() where id = 1 returning balance",
     [amount]

@@ -1,22 +1,42 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
-import { getTreasury, listMarkets, getActiveTasks, getUserVerifiedCompletionCounts, getMarketPools } from "@/lib/data";
-import { formatPoints, formatRelativeToNow } from "@/lib/format";
+import {
+  getTreasury,
+  listMarkets,
+  getActiveTasks,
+  getUserVerifiedCompletionCounts,
+  getMarketPools,
+  getNewsFeed,
+} from "@/lib/data";
+import { formatPoints } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
-import { marketHeading } from "@/lib/outcome";
-import OutcomeBar from "@/components/OutcomeBar";
-import StatusBadge from "@/components/StatusBadge";
+import { MARKET_CREATION_COST, MARKET_CREATOR_FEE_BPS } from "@/lib/config";
+import MarketCard from "@/components/MarketCard";
 
 export default async function HomePage() {
   const profile = await getCurrentProfile();
-  const [treasury, allMarkets, tasks] = await Promise.all([
+  const [treasury, openMarkets, tasks, articles] = await Promise.all([
     getTreasury(),
     listMarkets("open"),
     getActiveTasks(),
+    getNewsFeed(),
   ]);
 
-  const featuredMarkets = allMarkets.slice(0, 3);
-  const pools = await Promise.all(featuredMarkets.map((m) => getMarketPools(m.id)));
+  // Lead with whatever people are actually betting on, not just whatever
+  // closes soonest — an empty market is a poor first impression.
+  const marketPools = await Promise.all(openMarkets.map((m) => getMarketPools(m.id)));
+  const ranked = openMarkets
+    .map((m, i) => ({
+      market: m,
+      pools: marketPools[i],
+      volume: summarizePools(marketPools[i], m.outcome_options).total,
+    }))
+    .sort(
+      (a, b) =>
+        b.volume - a.volume ||
+        new Date(a.market.kickoff_time).getTime() - new Date(b.market.kickoff_time).getTime()
+    )
+    .slice(0, 4);
 
   const completionCounts = profile ? await getUserVerifiedCompletionCounts(profile.id) : {};
   const openTasks = tasks.filter((t) => {
@@ -24,106 +44,104 @@ export default async function HomePage() {
     return t.max_completions_per_user === null || done < t.max_completions_per_user;
   });
 
+  const latestArticle = articles[0];
+  const creatorFeePct = MARKET_CREATOR_FEE_BPS() / 100;
+
   return (
     <div className="space-y-6">
       {!profile && (
         <div className="rounded-xl border border-line bg-surface p-5">
-          <h1 className="text-lg font-extrabold">労働が金庫を育て、金庫が予測市場を回す。</h1>
-          <p className="text-sm text-ink-muted mt-1">
-            広告視聴やアンケートで貯めたポイントで、サッカーの試合結果を予測してみんなで山分けしよう。
+          <h1 className="text-lg font-extrabold leading-snug">
+            ニュースを読む。未来を予想する。当てて増やす。
+          </h1>
+          <p className="text-sm text-ink-muted mt-2">
+            広告視聴やアンケートで貯めたポイントで予想に参加。気になる論点は自分でマーケットを作れて、
+            盛り上がればテラ銭の{creatorFeePct}%が報酬として入ります。
+          </p>
+          <p className="text-xs text-accent-ink font-semibold mt-2">
+            いま登録すると {formatPoints(1000)} からスタートできます。
           </p>
           <div className="flex gap-2 mt-4">
             <Link href="/signup" className="rounded-lg bg-accent text-white text-sm font-semibold px-4 py-2">
-              はじめる
+              無料ではじめる
             </Link>
-            <Link href="/treasury" className="rounded-lg border border-line-strong text-sm font-semibold px-4 py-2">
-              金庫を見る
+            <Link href="/news" className="rounded-lg border border-line-strong text-sm font-semibold px-4 py-2">
+              ニュースを見る
             </Link>
           </div>
         </div>
       )}
 
-      <Link
-        href="/news"
-        className="flex items-center justify-between rounded-xl border border-line bg-surface-2 p-4 hover:border-line-strong"
-      >
-        <span className="text-sm font-bold">📰 ニュースを読んで予測に参加する（実験機能）</span>
-        <span className="text-xs text-accent-ink font-semibold">見る &gt;</span>
-      </Link>
-
-      <section className="rounded-xl border border-line bg-surface p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-ink-muted">金庫(Treasury)残高</span>
-          <Link href="/treasury" className="text-xs text-accent-ink font-semibold">
-            詳細 &gt;
-          </Link>
-        </div>
-        <p className="font-mono-num text-2xl font-extrabold text-accent-ink mt-1">
-          {formatPoints(treasury.balance)}
-        </p>
-      </section>
-
-      {profile && (
-        <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold">今日のタスク</h2>
-            <Link href="/tasks" className="text-xs text-accent-ink font-semibold">
-              タスクセンターへ &gt;
-            </Link>
-          </div>
-          {openTasks.length === 0 ? (
-            <p className="text-xs text-ink-faint">完了できるタスクはありません。また後で確認してください。</p>
-          ) : (
-            <ul className="space-y-2">
-              {openTasks.slice(0, 3).map((task) => (
-                <li key={task.id} className="flex items-center justify-between text-sm">
-                  <span>{task.type === "ad_view" ? "🎬" : "📋"} {task.title}</span>
-                  <span className="font-mono-num text-accent-ink font-semibold">
-                    +{formatPoints(task.reward_points)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {latestArticle && (
+        <Link
+          href="/news"
+          className="block rounded-xl border border-line bg-surface-2 p-4 hover:border-line-strong"
+        >
+          <span className="text-[10px] font-bold text-ink-faint">📰 最新ニュースから予測する</span>
+          <p className="text-sm font-bold mt-1 leading-snug">{latestArticle.title}</p>
+          <span className="text-xs text-accent-ink font-semibold mt-1 inline-block">
+            {latestArticle.markets.length > 0
+              ? `${latestArticle.markets.length}件の予想マーケット >`
+              : `このニュースでマーケットを作る（${MARKET_CREATION_COST()}pt） >`}
+          </span>
+        </Link>
       )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold">受付中のマーケット</h2>
+          <h2 className="text-sm font-bold">🔥 盛り上がっているマーケット</h2>
           <Link href="/markets" className="text-xs text-accent-ink font-semibold">
-            一覧へ &gt;
+            すべて見る &gt;
           </Link>
         </div>
 
-        {featuredMarkets.length === 0 ? (
+        {ranked.length === 0 ? (
           <p className="text-xs text-ink-faint rounded-xl border border-line bg-surface p-4">
             現在受付中のマーケットはありません。
           </p>
         ) : (
           <ul className="space-y-3">
-            {featuredMarkets.map((market, i) => (
+            {ranked.map(({ market, pools }) => (
               <li key={market.id}>
-                <Link
-                  href={`/markets/${market.id}`}
-                  className="block rounded-xl border border-line bg-surface p-4 hover:border-line-strong space-y-2"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm">
-                      {market.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(market)}
-                    </span>
-                    <StatusBadge status={market.status} />
-                  </div>
-                  <p className="text-xs text-ink-faint">
-                    キックオフ {formatRelativeToNow(market.kickoff_time)}
-                  </p>
-                  <OutcomeBar pool={summarizePools(pools[i], market.outcome_options)} />
-                </Link>
+                <MarketCard market={market} pools={pools} />
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      {profile && openTasks.length > 0 && (
+        <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold">ポイントを貯める</h2>
+            <Link href="/tasks" className="text-xs text-accent-ink font-semibold">
+              タスクセンターへ &gt;
+            </Link>
+          </div>
+          <ul className="space-y-2">
+            {openTasks.slice(0, 3).map((task) => (
+              <li key={task.id} className="flex items-center justify-between text-sm">
+                <span>
+                  {task.type === "ad_view" ? "🎬" : "📋"} {task.title}
+                </span>
+                <span className="font-mono-num text-accent-ink font-semibold">
+                  +{formatPoints(task.reward_points)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Link
+        href="/treasury"
+        className="flex items-center justify-between rounded-xl border border-line bg-surface p-4 hover:border-line-strong"
+      >
+        <span className="text-xs font-bold text-ink-muted">コミュニティ金庫(Treasury)</span>
+        <span className="font-mono-num text-lg font-extrabold text-accent-ink">
+          {formatPoints(treasury.balance)}
+        </span>
+      </Link>
     </div>
   );
 }

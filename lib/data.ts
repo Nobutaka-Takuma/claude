@@ -180,7 +180,7 @@ export async function getNewsFeed(): Promise<NewsFeedItem[]> {
     `select
        a.*,
        coalesce(
-         json_agg(m.*) filter (where m.id is not null),
+         json_agg(m.* order by m.created_at desc) filter (where m.id is not null),
          '[]'
        ) as markets
      from news_articles a

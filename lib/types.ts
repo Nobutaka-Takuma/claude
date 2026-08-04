@@ -76,6 +76,7 @@ export interface Market {
   market_kind: MarketKind;
   outcome_options: OutcomeOption[];
   news_article_id: string | null;
+  creator_fee_bps: number;
 }
 
 export interface NewsArticle {

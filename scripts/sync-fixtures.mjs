@@ -16,9 +16,22 @@ const DAYS_AHEAD = Number(process.env.SPORTS_API_SYNC_DAYS ?? 14);
 async function main() {
   const provider = getProvider();
   console.log(`Fetching fixtures from provider "${provider.name}" (next ${DAYS_AHEAD} days)...`);
+  if (provider.name === "api_football") {
+    console.log(
+      `  league=${process.env.API_FOOTBALL_LEAGUE_ID ?? "98 (default)"} ` +
+        `season=${process.env.API_FOOTBALL_SEASON ?? `${new Date().getFullYear()} (default)`}`
+    );
+  }
 
   const fixtures = await provider.listUpcomingFixtures(DAYS_AHEAD);
   console.log(`Got ${fixtures.length} fixture(s).`);
+
+  if (fixtures.length === 0) {
+    console.warn(
+      "No fixtures came back, so no markets were created or updated. If you expected real matches, " +
+        "re-check the league/season above and that SPORTS_API_PROVIDER=api_football."
+    );
+  }
 
   let created = 0;
   let updated = 0;

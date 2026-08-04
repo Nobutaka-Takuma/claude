@@ -1,0 +1,68 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getSessionUserId } from "@/lib/session";
+import { createMarket, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { MARKET_CREATION_COST, MARKET_CREATOR_FEE_BPS } from "@/lib/config";
+
+// POST /api/markets/create
+//
+// Paid market creation: charges MARKET_CREATION_COST and opens the market
+// straight away, with the creator entitled to a share of its rake. The
+// free, vote-to-open alternative lives at /api/markets/propose.
+const bodySchema = z
+  .object({
+    title: z.string().min(3).max(120),
+    marketKind: z.enum(["match_winner", "binary", "multi_outcome"]),
+    closesAt: z.string().min(1),
+    description: z.string().max(2000).optional(),
+    category: z.string().max(40).optional(),
+    homeTeam: z.string().min(1).max(60).optional(),
+    awayTeam: z.string().min(1).max(60).optional(),
+    newsArticleId: z.string().uuid().optional(),
+    outcomeOptions: z
+      .array(z.object({ key: z.string().min(1).max(40), label: z.string().min(1).max(80) }))
+      .min(2)
+      .max(8)
+      .optional(),
+  })
+  .refine((v) => v.marketKind !== "match_winner" || (v.homeTeam && v.awayTeam), {
+    message: "home_away_required",
+  })
+  .refine((v) => v.marketKind === "match_winner" || (v.outcomeOptions && v.outcomeOptions.length >= 2), {
+    message: "invalid_outcome_options",
+  });
+
+export async function POST(req: Request) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+  }
+
+  try {
+    const market = await createMarket({
+      userId,
+      title: parsed.data.title,
+      marketKind: parsed.data.marketKind,
+      closesAt: new Date(parsed.data.closesAt).toISOString(),
+      outcomeOptions: parsed.data.outcomeOptions ?? [],
+      description: parsed.data.description ?? null,
+      category: parsed.data.category ?? "general",
+      homeTeam: parsed.data.homeTeam ?? null,
+      awayTeam: parsed.data.awayTeam ?? null,
+      newsArticleId: parsed.data.newsArticleId ?? null,
+      creationCost: MARKET_CREATION_COST(),
+      creatorFeeBps: MARKET_CREATOR_FEE_BPS(),
+    });
+    return NextResponse.json({ ok: true, market });
+  } catch (err) {
+    if (err instanceof RpcError) {
+      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
+    }
+    throw err;
+  }
+}

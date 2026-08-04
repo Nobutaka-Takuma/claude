@@ -28,6 +28,8 @@ async function apiFootballFetch(path, params) {
   const url = new URL(`${BASE_URL}${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
 
+  console.log(`  -> GET ${url.pathname}?${url.searchParams}`);
+
   const res = await fetch(url, {
     headers: { "x-apisports-key": requireKey() },
   });
@@ -35,9 +37,36 @@ async function apiFootballFetch(path, params) {
     throw new Error(`API-Football request failed: ${res.status} ${res.statusText} (${url})`);
   }
   const body = await res.json();
-  if (Array.isArray(body.errors) ? body.errors.length > 0 : Object.keys(body.errors ?? {}).length > 0) {
-    throw new Error(`API-Football returned errors: ${JSON.stringify(body.errors)}`);
+
+  const remaining = res.headers.get("x-ratelimit-requests-remaining");
+  if (remaining !== null) {
+    console.log(`  <- ${body.results ?? 0} result(s); daily quota remaining: ${remaining}`);
+  } else {
+    console.log(`  <- ${body.results ?? 0} result(s)`);
   }
+
+  // API-Football answers 200 OK even when it rejects the request, putting
+  // the reason in `errors` — an empty/invalid key, or a season your plan
+  // doesn't cover, both land here rather than as an HTTP error.
+  const errors = body.errors ?? {};
+  const hasErrors = Array.isArray(errors) ? errors.length > 0 : Object.keys(errors).length > 0;
+  if (hasErrors) {
+    throw new Error(
+      `API-Football rejected the request: ${JSON.stringify(errors)}\n` +
+        "  Common causes: an invalid API_FOOTBALL_KEY, or requesting a season your plan doesn't include " +
+        "(the free plan only covers a fixed set of past seasons — check your dashboard and set " +
+        "API_FOOTBALL_SEASON accordingly)."
+    );
+  }
+
+  if ((body.results ?? 0) === 0) {
+    console.warn(
+      "  NOTE: the request succeeded but returned 0 results. Check API_FOOTBALL_LEAGUE_ID / " +
+        "API_FOOTBALL_SEASON against https://v3.football.api-sports.io/leagues — a season your plan " +
+        "does not cover, or an out-of-season date range, both come back empty rather than as an error."
+    );
+  }
+
   return body;
 }
 

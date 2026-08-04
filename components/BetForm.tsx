@@ -5,13 +5,9 @@ import { useMemo, useState } from "react";
 import type { PoolBreakdown } from "@/lib/pool";
 import { estimateMultiplier } from "@/lib/pool";
 import type { OutcomeOption } from "@/lib/types";
+import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  insufficient_balance: "ポイント残高が不足しています",
-  market_not_open: "このマーケットは受付を終了しています",
-  invalid_amount: "金額を正しく入力してください",
-  invalid_outcome: "選択肢が無効です",
-};
+const STAKE_PRESETS = [10, 50, 100, 500];
 
 export default function BetForm({
   marketId,
@@ -47,7 +43,12 @@ export default function BetForm({
     [pool, outcome, amount, rakeBps]
   );
 
-  const multiplierFor = (key: string) => estimateMultiplier(pool, key, compact ? 1 : amount, rakeBps);
+  // Always quotes the multiplier for the stake actually about to be
+  // placed. Quoting it for a nominal 1pt instead would advertise wild
+  // numbers (x91 on an untouched side) that collapse the moment the real
+  // stake lands and moves the pool.
+  const multiplierFor = (key: string, stake: number) =>
+    estimateMultiplier(pool, key, Math.max(stake, 1), rakeBps);
 
   async function placeBet(chosenOutcome: string, chosenAmount: number) {
     setSubmitting(chosenOutcome);
@@ -61,7 +62,11 @@ export default function BetForm({
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "unknown" }));
-      setError(ERROR_MESSAGES[body.error] ?? "ベットに失敗しました");
+      if (isAuthError(body.error)) {
+        router.push("/login");
+        return;
+      }
+      setError(apiErrorMessage(body.error, "ベットに失敗しました"));
       setSubmitting(null);
       return;
     }
@@ -71,31 +76,58 @@ export default function BetForm({
   }
 
   if (compact) {
-    const compactAmount = Math.min(50, maxAmount);
+    const affordable = STAKE_PRESETS.filter((p) => p <= maxAmount);
+    const stake = Math.min(amount, maxAmount);
+    const canBet = stake > 0 && stake <= maxAmount;
+
     return (
-      <div className="space-y-1">
+      <div className="space-y-2">
         <div className="flex gap-2">
           {outcomeOptions.map((o) => {
-            const mult = multiplierFor(o.key);
+            const share = pool.options.find((p) => p.key === o.key);
+            const mult = multiplierFor(o.key, stake);
             return (
               <button
                 key={o.key}
                 type="button"
-                disabled={submitting !== null || compactAmount <= 0}
-                onClick={() => placeBet(o.key, compactAmount)}
-                className="flex-1 rounded-lg border border-line-strong py-2.5 px-2 text-center hover:border-accent disabled:opacity-40"
+                disabled={submitting !== null || !canBet}
+                onClick={() => placeBet(o.key, stake)}
+                className="flex-1 rounded-lg border border-line-strong py-2 px-2 text-center hover:border-accent hover:bg-accent-soft disabled:opacity-40"
               >
-                <span className="block text-xs font-bold">{o.label}</span>
+                {/* Pool share is the implied probability in a parimutuel
+                    market, so it doubles as Polymarket's "chance" number. */}
+                <span className="block font-mono-num text-lg font-extrabold leading-tight text-accent-ink">
+                  {submitting === o.key ? "…" : pool.total > 0 ? `${share?.pct ?? 0}%` : "—"}
+                </span>
+                <span className="block text-[11px] font-bold truncate">{o.label}</span>
                 <span className="block text-[10px] font-mono-num text-ink-faint">
-                  {submitting === o.key ? "…" : mult ? `x${mult.toFixed(2)}` : "-"}
+                  {mult ? `払戻 x${mult.toFixed(2)}` : "-"}
                 </span>
               </button>
             );
           })}
         </div>
-        <p className="text-[10px] text-ink-faint">
-          {compactAmount > 0 ? `タップで${compactAmount}pt賭ける（保有 ${maxAmount.toLocaleString("ja-JP")}pt）` : "ポイント残高が不足しています"}
-        </p>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] text-ink-faint">賭ける額</span>
+          {affordable.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setAmount(p)}
+              className={`font-mono-num text-[10px] font-bold rounded-full px-2 py-0.5 border ${
+                stake === p ? "bg-accent text-white border-accent" : "border-line-strong text-ink-muted"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <span className="text-[10px] text-ink-faint ml-auto">
+            保有 {maxAmount.toLocaleString("ja-JP")}pt
+          </span>
+        </div>
+
+        {!canBet && <p className="text-[10px] text-neg">ポイント残高が不足しています</p>}
         {error && <p className="text-[11px] text-neg">{error}</p>}
       </div>
     );
@@ -111,7 +143,7 @@ export default function BetForm({
     >
       <div className="flex flex-wrap gap-2">
         {outcomeOptions.map((o) => {
-          const mult = multiplierFor(o.key);
+          const mult = multiplierFor(o.key, amount);
           return (
             <button
               key={o.key}

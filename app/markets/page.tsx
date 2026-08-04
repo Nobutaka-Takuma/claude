@@ -1,33 +1,50 @@
 import Link from "next/link";
 import { listMarkets, getMarketPools } from "@/lib/data";
-import { formatRelativeToNow } from "@/lib/format";
-import { summarizePools } from "@/lib/pool";
-import { marketHeading, outcomeLabel } from "@/lib/outcome";
-import OutcomeBar from "@/components/OutcomeBar";
-import StatusBadge from "@/components/StatusBadge";
+import MarketCard from "@/components/MarketCard";
 import type { MarketStatus } from "@/lib/types";
 
 const TABS: { key: string; label: string; statuses: MarketStatus[] }[] = [
   { key: "open", label: "受付中", statuses: ["open"] },
-  { key: "closing", label: "終了間近・判定中", statuses: ["locked", "pending_resolution", "disputed"] },
+  { key: "closing", label: "判定中", statuses: ["locked", "pending_resolution", "disputed"] },
   { key: "resolved", label: "終了済", statuses: ["resolved", "cancelled"] },
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  soccer: "⚽ サッカー",
+  finance: "💹 金融",
+  economy: "💹 経済",
+  politics: "🏛 政治",
+  tech: "💻 テック",
+  general: "❓ その他",
+};
 
 export default async function MarketsPage({ searchParams }: PageProps<"/markets">) {
   const params = await searchParams;
   const activeTab = typeof params.tab === "string" ? params.tab : "open";
+  const activeCategory = typeof params.category === "string" ? params.category : null;
   const tab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
 
   const allMarkets = await listMarkets();
-  const markets = allMarkets.filter((m) => tab.statuses.includes(m.status));
+  const inTab = allMarkets.filter((m) => tab.statuses.includes(m.status));
+
+  // Category chips are derived from what's actually in this tab, so users
+  // never see a filter that would return nothing.
+  const categories = [...new Set(inTab.map((m) => m.category))].sort();
+  const markets = activeCategory ? inTab.filter((m) => m.category === activeCategory) : inTab;
   const pools = await Promise.all(markets.map((m) => getMarketPools(m.id)));
 
+  const withCategory = (category: string | null) =>
+    `/markets?tab=${tab.key}${category ? `&category=${encodeURIComponent(category)}` : ""}`;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-extrabold">マーケット一覧</h1>
-        <Link href="/markets/propose" className="text-xs font-bold rounded-full bg-gold-soft text-gold px-3 py-1.5">
-          + お題を提案
+        <h1 className="text-lg font-extrabold">マーケット</h1>
+        <Link
+          href="/markets/propose"
+          className="text-xs font-bold rounded-full bg-gold text-white px-3 py-1.5"
+        >
+          ＋ 作る
         </Link>
       </div>
 
@@ -45,6 +62,30 @@ export default async function MarketsPage({ searchParams }: PageProps<"/markets"
         ))}
       </div>
 
+      {categories.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap text-[11px] font-semibold">
+          <Link
+            href={withCategory(null)}
+            className={`px-2.5 py-1 rounded-full ${
+              !activeCategory ? "bg-ink text-bg" : "border border-line text-ink-faint"
+            }`}
+          >
+            すべて
+          </Link>
+          {categories.map((c) => (
+            <Link
+              key={c}
+              href={withCategory(c)}
+              className={`px-2.5 py-1 rounded-full ${
+                activeCategory === c ? "bg-ink text-bg" : "border border-line text-ink-faint"
+              }`}
+            >
+              {CATEGORY_LABELS[c] ?? c}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {markets.length === 0 ? (
         <p className="text-xs text-ink-faint rounded-xl border border-line bg-surface p-4">
           該当するマーケットはありません。
@@ -53,23 +94,7 @@ export default async function MarketsPage({ searchParams }: PageProps<"/markets"
         <ul className="space-y-3">
           {markets.map((market, i) => (
             <li key={market.id}>
-              <Link
-                href={`/markets/${market.id}`}
-                className="block rounded-xl border border-line bg-surface p-4 hover:border-line-strong space-y-2"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-sm">
-                    {market.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(market)}
-                  </span>
-                  <StatusBadge status={market.status} />
-                </div>
-                <p className="text-xs text-ink-faint">
-                  {market.status === "resolved"
-                    ? `結果: ${outcomeLabel(market.outcome_options, market.outcome)}`
-                    : `キックオフ ${formatRelativeToNow(market.kickoff_time)}`}
-                </p>
-                <OutcomeBar pool={summarizePools(pools[i], market.outcome_options)} />
-              </Link>
+              <MarketCard market={market} pools={pools[i]} />
             </li>
           ))}
         </ul>
