@@ -77,6 +77,8 @@ export interface Market {
   outcome_options: OutcomeOption[];
   news_article_id: string | null;
   creator_fee_bps: number;
+  resolution_proposed_by: string | null;
+  resolution_bond: string;
 }
 
 export interface NewsArticle {
@@ -87,6 +89,8 @@ export interface NewsArticle {
   category: string;
   published_at: string;
   created_at: string;
+  url: string | null;
+  external_ref: string | null;
 }
 
 export interface NewsFeedItem extends NewsArticle {

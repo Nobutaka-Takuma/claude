@@ -11,6 +11,7 @@ import {
 import { formatDateTime, formatPoints, formatRelativeToNow } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
+import { RESOLUTION_BOND, DISPUTE_WINDOW_MINUTES } from "@/lib/config";
 import OutcomeBar from "@/components/OutcomeBar";
 import StatusBadge from "@/components/StatusBadge";
 import BetForm from "@/components/BetForm";
@@ -83,7 +84,14 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
 
       {(market.status === "pending_resolution" || market.status === "disputed") && (
         <section className="rounded-xl border border-gold/50 bg-gold-soft p-4 space-y-1">
-          <p className="text-sm font-bold text-gold">一次判定: {outcomeLabel(market.outcome_options, market.outcome)}</p>
+          <p className="text-sm font-bold text-gold">
+            提案されている結果: {outcomeLabel(market.outcome_options, market.outcome)}
+          </p>
+          <p className="text-[11px] text-ink-muted">
+            提案者: {market.resolution_source === "community" ? "コミュニティメンバー" : "運営"}
+            {Number(market.resolution_bond) > 0 &&
+              `（保証金 ${Number(market.resolution_bond).toLocaleString("ja-JP")}pt を預託中）`}
+          </p>
           {market.status === "pending_resolution" && market.dispute_deadline && (
             <p className="text-[11px] text-ink-muted">
               異議申し立て期限 {formatDateTime(market.dispute_deadline)}（{formatRelativeToNow(market.dispute_deadline)}）— 期限までに異議がなければ自動的にこの結果で確定・精算されます。
@@ -166,12 +174,30 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </section>
       )}
 
-      {profile?.role === "admin" && market.status === "locked" && (
-        <div className="space-y-2">
-          <SubmitResultForm marketId={market.id} outcomeOptions={market.outcome_options} />
-          <VoidMarketButton marketId={market.id} />
-        </div>
-      )}
+      {market.status === "locked" &&
+        (profile ? (
+          <div className="space-y-2">
+            <SubmitResultForm
+              marketId={market.id}
+              outcomeOptions={market.outcome_options}
+              bond={RESOLUTION_BOND()}
+              disputeWindowHours={Math.round(DISPUTE_WINDOW_MINUTES() / 60)}
+              isAdmin={profile.role === "admin"}
+              balance={Number(profile.points_balance)}
+            />
+            {profile.role === "admin" && <VoidMarketButton marketId={market.id} />}
+          </div>
+        ) : (
+          <section className="rounded-xl border border-gold/50 bg-gold-soft p-4">
+            <p className="text-xs text-ink-muted">
+              結果の判定待ちです。判定を提案するには
+              <Link href="/login" className="text-accent-ink font-semibold mx-1">
+                ログイン
+              </Link>
+              してください。
+            </p>
+          </section>
+        ))}
 
       {profile?.role === "admin" && (market.status === "pending_resolution" || market.status === "disputed") && (
         <AdminResolveForm marketId={market.id} outcomeOptions={market.outcome_options} />

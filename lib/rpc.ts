@@ -128,15 +128,22 @@ export function voteMarketProposal(userId: string, marketId: string, threshold: 
   ]);
 }
 
+// proposedBy null = operator/batch submission (no bond). A real user
+// proposing posts `bond` points, returned if the result stands and
+// forfeited if a DAO vote overturns it.
 export function submitProvisionalResult(
   marketId: string,
   outcome: string,
-  disputeWindowMinutes: number
+  disputeWindowMinutes: number,
+  proposedBy: string | null = null,
+  bond = 0
 ) {
-  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3)", [
+  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3, $4, $5)", [
     marketId,
     outcome,
     disputeWindowMinutes,
+    proposedBy,
+    bond,
   ]);
 }
 

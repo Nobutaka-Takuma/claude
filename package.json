@@ -11,10 +11,12 @@
     "smoke-test": "node scripts/smoke-test.mjs",
     "sync-fixtures": "node --env-file=.env.local scripts/sync-fixtures.mjs",
     "sync-results": "node --env-file=.env.local scripts/sync-results.mjs",
-    "seed-news": "node --env-file=.env.local scripts/seed-news.mjs"
+    "seed-news": "node --env-file=.env.local scripts/seed-news.mjs",
+    "sync-news": "node --env-file=.env.local scripts/sync-news.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "fast-xml-parser": "^5.10.1",
     "next": "16.3.0",
     "pg": "^8.22.0",
     "react": "19.2.8",

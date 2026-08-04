@@ -17,3 +17,12 @@ export const MARKET_CREATOR_FEE_BPS = () => intFromEnv("MARKET_CREATOR_FEE_BPS",
 
 // Approval votes a *free* proposal needs before it opens for betting.
 export const MARKET_APPROVAL_THRESHOLD = () => intFromEnv("MARKET_APPROVAL_THRESHOLD", 3);
+
+// Points locked up when a user proposes a market's result. Returned if
+// the result survives the dispute window (or a DAO vote), forfeited to
+// the treasury if the DAO overturns it. Set it high enough that lying
+// costs more than a wrong settlement could pay the liar.
+export const RESOLUTION_BOND = () => intFromEnv("RESOLUTION_BOND", 100);
+
+// How long the community has to dispute a proposed result.
+export const DISPUTE_WINDOW_MINUTES = () => intFromEnv("DISPUTE_WINDOW_MINUTES", 1440);

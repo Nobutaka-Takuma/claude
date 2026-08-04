@@ -45,6 +45,16 @@ export default function NewsArticleCard({
         </div>
         <h2 className="text-base font-extrabold leading-snug">{article.title}</h2>
         <p className="text-sm text-ink-muted whitespace-pre-wrap leading-relaxed">{article.body}</p>
+        {article.url && (
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-[11px] text-accent-ink font-semibold"
+          >
+            元記事を読む ↗
+          </a>
+        )}
       </div>
 
       <div className="border-t border-line bg-surface-2 p-4 space-y-3">
