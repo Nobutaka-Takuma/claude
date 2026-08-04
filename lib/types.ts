@@ -1,0 +1,121 @@
+export type TaskType = "ad_view" | "survey";
+
+export type MarketStatus =
+  | "proposed"
+  | "open"
+  | "locked"
+  | "pending_resolution"
+  | "disputed"
+  | "resolved"
+  | "cancelled";
+
+export type MarketOutcome = "home" | "away" | "draw" | "void";
+export type BetStatus = "active" | "won" | "lost" | "void" | "refunded";
+export type ChallengeStatus = "open" | "upheld" | "rejected" | "withdrawn";
+export type UserRole = "user" | "moderator" | "admin";
+
+export interface Profile {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  points_balance: string; // bigint comes back from pg as string
+  role: UserRole;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Treasury {
+  id: number;
+  balance: string;
+  updated_at: string;
+}
+
+export interface Task {
+  id: string;
+  type: TaskType;
+  title: string;
+  description: string | null;
+  reward_points: string;
+  provider: string;
+  config: Record<string, unknown>;
+  is_active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  max_completions_per_user: number | null;
+  created_at: string;
+}
+
+export interface Market {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  source: "api_auto" | "user_proposed";
+  external_ref: string | null;
+  home_team: string;
+  away_team: string;
+  kickoff_time: string;
+  status: MarketStatus;
+  rake_bps: number;
+  outcome: MarketOutcome | null;
+  resolution_source: string | null;
+  dispute_deadline: string | null;
+  created_by: string | null;
+  approved_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface MarketPool {
+  market_id: string;
+  outcome: MarketOutcome;
+  pool_amount: string;
+  bettor_count: string;
+}
+
+export interface Bet {
+  id: string;
+  market_id: string;
+  user_id: string;
+  outcome: MarketOutcome;
+  amount: string;
+  status: BetStatus;
+  payout_amount: string;
+  placed_at: string;
+  settled_at: string | null;
+}
+
+export interface Challenge {
+  id: string;
+  market_id: string;
+  raised_by: string;
+  reason: string;
+  evidence_url: string | null;
+  status: ChallengeStatus;
+  voting_deadline: string;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface Vote {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  voted_outcome: MarketOutcome;
+  voting_power: string;
+  created_at: string;
+}
+
+export interface TreasuryLog {
+  id: string;
+  entry_type: string;
+  user_id: string | null;
+  points_delta: string;
+  treasury_delta: string;
+  user_balance_after: string | null;
+  treasury_balance_after: string | null;
+  ref_table: string | null;
+  ref_id: string | null;
+  memo: string | null;
+  created_at: string;
+}

@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #f5f3ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #edeae0;
+  --color-ink: #1c231d;
+  --color-ink-muted: #5c6459;
+  --color-ink-faint: #8b9285;
+  --color-line: #d9d4c6;
+  --color-line-strong: #b9b29e;
+  --color-accent: #1f6b45;
+  --color-accent-ink: #0e4a2d;
+  --color-accent-soft: #dceadc;
+  --color-gold: #ad7f26;
+  --color-gold-soft: #f1e4c4;
+  --color-draw: #5b6b7a;
+  --color-draw-soft: #e2e7ed;
+  --color-neg: #a24632;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #11150f;
+    --color-surface: #1a2117;
+    --color-surface-2: #212a1d;
+    --color-ink: #ecefe6;
+    --color-ink-muted: #a2ab99;
+    --color-ink-faint: #707866;
+    --color-line: #31392c;
+    --color-line-strong: #48513f;
+    --color-accent: #54b37f;
+    --color-accent-ink: #8fdcb1;
+    --color-accent-soft: #1e3327;
+    --color-gold: #d8ae55;
+    --color-gold-soft: #3a2f17;
+    --color-draw: #8c9fb4;
+    --color-draw-soft: #232b34;
+    --color-neg: #d97e68;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-2: var(--color-surface-2);
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-line: var(--color-line);
+  --color-line-strong: var(--color-line-strong);
+  --color-accent: var(--color-accent);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
+  --color-draw: var(--color-draw);
+  --color-draw-soft: var(--color-draw-soft);
+  --color-neg: var(--color-neg);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "Yu Gothic UI", "Segoe UI", sans-serif;
+}
+
+.font-mono-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
