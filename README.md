@@ -30,6 +30,7 @@ for f in supabase/migrations/*.sql; do psql "postgresql://postgres:postgres@127.
 
 # 5. デモ用データを投入（管理者アカウント・タスク・マーケットのseed）
 npm run seed
+npm run seed-news   # News-Firstフィード(/news)検証用のデモ記事＋紐付けマーケット（任意）
 
 # 6. 開発サーバーを起動
 npm run dev
@@ -102,7 +103,18 @@ npm run sync-results    # ロック済みの自動生成マーケットの結果
 - `sync-results`は試合終了を検知しても即座には精算せず、`submit_provisional_result`経由でOptimistic Oracleの異議申し立て期間を開始します（管理者が手動確定する場合と同じ経路）。
 - 本番運用では両スクリプトを1日1回程度のcron（例: `pg_cron`やGitHub Actionsのscheduled workflow、Supabase Edge Functionsのcronトリガーなど）から実行する想定です。このリポジトリには実際のスケジューラは含まれていません。
 
+### News-Firstフィード（実験機能・`/news`）
+
+Polymarket/ミライマとの差別化として、「ニュース記事＋その場でベットできるコミュニティ予想」を1画面にまとめたフィードのUIプロトタイプです。まだ実際のニュースAPI連携やLLMによる自動お題生成は行っていません — `npm run seed-news`で手動投入した2件のデモ記事（為替ニュース＋既存のスポーツマーケットに紐付けたスポーツニュース）で、UI/UXの検証のみを行っています。
+
+- `news_articles`テーブルと、任意で紐付けられる`markets.news_article_id`、記事単位のフラットな`comments`テーブルを追加（`supabase/migrations/00000000000006_news_and_comments.sql`）
+- `app/news/page.tsx`: ニュース本文の下に、そのニュースに紐づくマーケットをワンタップでベットできるコンパクトなウィジェット（`BetForm`の`compact`モード、選択肢ごとにオッズを表示）として表示し、さらにその下にコメント欄を配置
+- 既存のホーム画面はそのまま残し、`/news`への導線バナーを追加する形で並行提供（ホーム画面を全面置き換えていません）
+
+次に着手するなら、ニュース取得（RSS/ニュースAPI）→ LLMによる候補質問の草案生成 → 管理者/コミュニティ承認、という半自動パイプラインの構築です（スポーツ同期のバッチ構成は流用できますが、フリーテキストのニュースから賭けられる質問を作る部分はスポーツのフィクスチャ同期とは別物の実装が必要です）。
+
 ## 次のステップ（未実装）
 
 - 本番Supabaseプロジェクトへの接続（Auth・RLSの実運用設定、`finalize_expired_markets`/`sync_market_status`/`sync-fixtures`/`sync-results`を実際のスケジュールジョブ(pg_cron / Supabase Edge Functions / GitHub Actions cron等)に置き換える）
 - `SPORTS_API_PROVIDER=api_football`での実APIキーによる本番動作確認（このセッションではAPIキーを持っていないため、モックプロバイダでのみ検証済みです）
+- News-Firstフィードの本実装: ニュースAPI/RSS連携、LLMによる質問草案の自動生成、承認フロー

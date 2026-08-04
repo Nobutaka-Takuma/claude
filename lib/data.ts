@@ -3,8 +3,10 @@ import { syncMarketStatus, finalizeExpiredMarkets } from "./rpc";
 import type {
   Bet,
   Challenge,
+  Comment,
   Market,
   MarketPool,
+  NewsFeedItem,
   Task,
   Treasury,
   TreasuryLog,
@@ -165,6 +167,37 @@ export async function getVotesForChallenge(challengeId: string): Promise<Vote[]>
   const result = await query<Vote>(
     "select * from votes where challenge_id = $1",
     [challengeId]
+  );
+  return result.rows;
+}
+
+// News-first feed: each article carries the market(s) curated alongside
+// it (usually one). markets is aggregated as json so this is a single
+// round trip regardless of feed length.
+export async function getNewsFeed(): Promise<NewsFeedItem[]> {
+  await tickMarketLifecycle();
+  const result = await query<NewsFeedItem>(
+    `select
+       a.*,
+       coalesce(
+         json_agg(m.*) filter (where m.id is not null),
+         '[]'
+       ) as markets
+     from news_articles a
+     left join markets m on m.news_article_id = a.id
+     group by a.id
+     order by a.published_at desc`
+  );
+  return result.rows;
+}
+
+export async function getCommentsForArticle(newsArticleId: string): Promise<Comment[]> {
+  const result = await query<Comment>(
+    `select c.*, p.username
+     from comments c join profiles p on p.id = c.user_id
+     where c.news_article_id = $1
+     order by c.created_at asc`,
+    [newsArticleId]
   );
   return result.rows;
 }

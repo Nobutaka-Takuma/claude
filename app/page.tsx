@@ -43,6 +43,14 @@ export default async function HomePage() {
         </div>
       )}
 
+      <Link
+        href="/news"
+        className="flex items-center justify-between rounded-xl border border-line bg-surface-2 p-4 hover:border-line-strong"
+      >
+        <span className="text-sm font-bold">📰 ニュースを読んで予測に参加する（実験機能）</span>
+        <span className="text-xs text-accent-ink font-semibold">見る &gt;</span>
+      </Link>
+
       <section className="rounded-xl border border-line bg-surface p-4">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-ink-muted">金庫(Treasury)残高</span>

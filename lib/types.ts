@@ -59,7 +59,7 @@ export interface Market {
   title: string;
   description: string | null;
   category: string;
-  source: "api_auto" | "user_proposed";
+  source: "api_auto" | "user_proposed" | "news_curated";
   external_ref: string | null;
   home_team: string | null;
   away_team: string | null;
@@ -75,6 +75,30 @@ export interface Market {
   created_at: string;
   market_kind: MarketKind;
   outcome_options: OutcomeOption[];
+  news_article_id: string | null;
+}
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  body: string;
+  source: string;
+  category: string;
+  published_at: string;
+  created_at: string;
+}
+
+export interface NewsFeedItem extends NewsArticle {
+  markets: Market[];
+}
+
+export interface Comment {
+  id: string;
+  news_article_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  username: string;
 }
 
 export interface MarketPool {
