@@ -6,15 +6,23 @@
 // Usage: npm run dev -- -p 3100  (in one terminal)
 //        node scripts/smoke-test.mjs  (in another)
 import { chromium } from "playwright";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const SHOTS_DIR = new URL("./shots/", import.meta.url);
+const SHOTS_DIR = fileURLToPath(new URL("./shots/", import.meta.url));
 mkdirSync(SHOTS_DIR, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+// Some sandboxed dev containers pre-install a Chromium build that doesn't
+// match this project's pinned Playwright version's expected download path;
+// fall back to it explicitly when present instead of trying to fetch one.
+const SANDBOX_CHROMIUM = "/opt/pw-browsers/chromium";
+const browser = await chromium.launch({
+  headless: true,
+  executablePath: existsSync(SANDBOX_CHROMIUM) ? SANDBOX_CHROMIUM : undefined,
+});
 const page = await browser.newPage();
 const base = process.env.SMOKE_TEST_BASE_URL ?? "http://127.0.0.1:3100";
-const shot = (n) => page.screenshot({ path: new URL(`${n}.png`, SHOTS_DIR), fullPage: true });
+const shot = (n) => page.screenshot({ path: `${SHOTS_DIR}${n}.png`, fullPage: true });
 const log = (...a) => console.log(...a);
 const rand = () => Math.random().toString(36).slice(2, 8);
 
