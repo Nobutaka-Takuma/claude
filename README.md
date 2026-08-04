@@ -1,6 +1,6 @@
 # Prediction Market DAO — MVP
 
-Polymarket / みらいマーケット的な、労働（広告視聴・アンケート）で貯まるコミュニティ金庫（Treasury）を原資に、サッカーの試合をパリミュチュエル方式で予測するWebアプリのMVP。
+Polymarket / みらいマーケット的な、労働（広告視聴・アンケート）で貯まるコミュニティ金庫（Treasury）を原資に、サッカーの試合結果からYes/No質問・複数選択肢の問いまで自由に予測できるパリミュチュエル方式のWebアプリのMVP。
 
 設計ドキュメント一式は [`docs/`](./docs) を参照してください（DBスキーマ解説・バックエンドロジック解説・ワイヤーフレーム）。
 
@@ -20,7 +20,7 @@ npm install
 # 2. DBを作成
 createdb prediction_market
 
-# 3. 環境変数を用意（DATABASE_URLなどはデフォルトのままでOK）
+# 3. 環境変数を用意（デフォルトのままでOK。スポーツAPI連携はキーなしのモックプロバイダで動きます）
 cp .env.example .env.local
 
 # 4. マイグレーションを適用（0000は本番Supabaseには不要 — 上記の注記を参照）
@@ -59,24 +59,50 @@ SMOKE_TEST_BASE_URL=http://127.0.0.1:3100 npm run smoke-test
 
 - 認証（サインアップ / ログイン / セッションCookie）
 - タスクセンター: 広告視聴（デモ版はシミュレーション再生）・アンケート回答 → `complete_task` RPCで自動ポイント付与＆金庫更新
-- マーケット一覧・詳細・パリミュチュエル方式のベット（`place_bet` RPC）。**的中者には賭けた分が必ず全額戻り**、そのうえで反対側のプールから運営手数料(テラ銭)を除いた分を山分けします。反対側に誰もベットしていなければ手数料もかからず、賭けた分がそのまま戻ります（後述）
+- マーケット一覧・詳細・パリミュチュエル方式のベット（`place_bet` RPC）。**的中者には賭けた分が必ず全額戻り**、そのうえで他の選択肢のプールから運営手数料(テラ銭)を除いた分を山分けします。他の選択肢に誰もベットしていなければ手数料もかからず、賭けた分がそのまま戻ります（後述）
+- **お題の形式は自由**: 試合の勝敗（ホーム/引分/アウェイ）だけでなく、Yes/No質問（例:「開幕戦で〇〇選手はスタメン出場するか？」）や、2〜8個の任意の選択肢を持つマーケットも作成できます（`markets.market_kind` + `outcome_options`）
 - お題提案 → 賛成票が閾値（既定3票、`MARKET_APPROVAL_THRESHOLD`で変更可）に達すると自動オープン
 - Optimistic Oracle: 管理者（本来はスポーツAPI/AIの一次判定に相当）が一次判定を提出（`submit_provisional_result` RPC）→ 異議申し立て期間（既定24時間、デモ用に2分の短縮オプションあり）→ 異議がなければ自動確定・精算、異議が出ればDAO投票の多数決で最終決定（`finalize_expired_markets` RPCが`sync_market_status`と同様にマーケット閲覧のたびに遅延実行される簡易cron）
 - 管理者による緊急オーバーライド（オラクルをスキップした即時確定・全額返金での中止）
+- **スポーツAPI連携**（`scripts/sync-fixtures.mjs` / `scripts/sync-results.mjs`）: 試合予定の自動取得・マーケット自動生成と、試合結果の自動取得 → 一次判定の自動提出（後述）
 - マイページ（ベット履歴・ポイント履歴）
 - 金庫（Treasury）ダッシュボード（公開・収益源の内訳）
 
 ### パリミュチュエル配当の仕組み（stake-back保証）
 
-反対側に誰も賭けていない場合でも的中者が損をしないよう、テラ銭は「反対側（負けた側）のプール」からのみ徴収します。
+他の選択肢に誰も賭けていない場合でも的中者が損をしないよう、テラ銭は「他の選択肢（外れた側）のプール」からのみ徴収します。
 
-- 総プール = 的中側プール + 反対側プール
-- テラ銭 = 反対側プール × 手数料率（既定10%）
-- 的中者への配当 = 自分の賭け金（全額） + 自分の賭け金 ÷ 的中側プール × (反対側プール − テラ銭)
+- 総プール = 的中した選択肢のプール + 他の選択肢のプール合計
+- テラ銭 = 他の選択肢のプール合計 × 手数料率（既定10%）
+- 的中者への配当 = 自分の賭け金（全額） + 自分の賭け金 ÷ 的中した選択肢のプール × (他の選択肢のプール合計 − テラ銭)
 
-反対側プールが0（誰も逆張りしていない）なら、テラ銭も0になり、賭けた分がそのまま戻ります。
+他の選択肢のプールが0（誰も逆張りしていない）なら、テラ銭も0になり、賭けた分がそのまま戻ります。
+
+### マーケットの形式（お題の種類）
+
+`/markets/propose` から3種類のお題を提案できます。
+
+| market_kind | 内容 | outcome_options の例 |
+|---|---|---|
+| `match_winner` | 試合の勝敗（3択） | ホーム/引分/アウェイをチーム名から自動生成 |
+| `binary` | Yes/No質問 | `[{"key":"yes","label":"はい"},{"key":"no","label":"いいえ"}]` |
+| `multi_outcome` | 自由な複数選択肢（2〜8個） | 提案者が入力したラベルから生成（`key`は`opt1, opt2, ...`） |
+
+ベット・配当計算・Optimistic Oracle・DAO投票はすべて`outcome_options`ベースの汎用ロジックで動作するため、選択肢の数や種類に関わらず同じ仕組みで扱えます。
+
+### スポーツAPI連携（マーケット自動生成・結果自動取得）
+
+```bash
+npm run sync-fixtures   # 試合予定を取得し、markets を自動生成/更新（external_ref で冪等）
+npm run sync-results    # ロック済みの自動生成マーケットの結果を取得し、一次判定を自動提出
+```
+
+- デフォルトは `SPORTS_API_PROVIDER=mock`（`.env.example`参照）で、APIキーなしで動作するダミーのJ1風フィクスチャを生成します。まず動作を確認したい場合はこのままで大丈夫です。
+- 本番接続する場合は `SPORTS_API_PROVIDER=api_football` にし、[api-football.com](https://www.api-football.com/) の無料枠キーを `API_FOOTBALL_KEY` に設定してください（J1リーグをカバーする数少ない無料枠API）。`API_FOOTBALL_LEAGUE_ID`（既定98）・`API_FOOTBALL_SEASON`は同社の`/leagues`エンドポイントで実際の値を確認のうえ調整してください。
+- `sync-results`は試合終了を検知しても即座には精算せず、`submit_provisional_result`経由でOptimistic Oracleの異議申し立て期間を開始します（管理者が手動確定する場合と同じ経路）。
+- 本番運用では両スクリプトを1日1回程度のcron（例: `pg_cron`やGitHub Actionsのscheduled workflow、Supabase Edge Functionsのcronトリガーなど）から実行する想定です。このリポジトリには実際のスケジューラは含まれていません。
 
 ## 次のステップ（未実装）
 
-- スポーツAPI連携によるマーケット自動生成バッチ
-- 本番Supabaseプロジェクトへの接続（Auth・RLSの実運用設定、`finalize_expired_markets`/`sync_market_status`を本物のスケジュールジョブ(pg_cron / Supabase Edge Functions等)に置き換える）
+- 本番Supabaseプロジェクトへの接続（Auth・RLSの実運用設定、`finalize_expired_markets`/`sync_market_status`/`sync-fixtures`/`sync-results`を実際のスケジュールジョブ(pg_cron / Supabase Edge Functions / GitHub Actions cron等)に置き換える）
+- `SPORTS_API_PROVIDER=api_football`での実APIキーによる本番動作確認（このセッションではAPIキーを持っていないため、モックプロバイダでのみ検証済みです）

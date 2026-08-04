@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { OutcomeOption } from "@/lib/types";
 
 const WINDOW_OPTIONS = [
   { minutes: 60 * 24, label: "24時間（本番想定）" },
@@ -10,19 +11,17 @@ const WINDOW_OPTIONS = [
 
 export default function SubmitResultForm({
   marketId,
-  homeLabel,
-  awayLabel,
+  outcomeOptions,
 }: {
   marketId: string;
-  homeLabel: string;
-  awayLabel: string;
+  outcomeOptions: OutcomeOption[];
 }) {
   const router = useRouter();
   const [windowMinutes, setWindowMinutes] = useState(WINDOW_OPTIONS[0].minutes);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(outcome: "home" | "draw" | "away") {
+  async function submit(outcome: string) {
     setSubmitting(outcome);
     setError(null);
     const res = await fetch(`/api/markets/${marketId}/submit-result`, {
@@ -63,22 +62,16 @@ export default function SubmitResultForm({
         </select>
       </label>
 
-      <div className="grid grid-cols-3 gap-2">
-        {(
-          [
-            ["home", homeLabel],
-            ["draw", "引分"],
-            ["away", awayLabel],
-          ] as const
-        ).map(([key, label]) => (
+      <div className="grid grid-cols-2 gap-2">
+        {outcomeOptions.map((o) => (
           <button
-            key={key}
+            key={o.key}
             type="button"
             disabled={submitting !== null}
-            onClick={() => submit(key)}
+            onClick={() => submit(o.key)}
             className="text-xs font-bold py-2 rounded-lg bg-white border border-gold text-gold disabled:opacity-50 truncate"
           >
-            {submitting === key ? "…" : label}
+            {submitting === o.key ? "…" : o.label}
           </button>
         ))}
       </div>

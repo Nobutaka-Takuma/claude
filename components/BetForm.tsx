@@ -3,30 +3,31 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { PoolBreakdown } from "@/lib/pool";
+import { estimateMultiplier } from "@/lib/pool";
+import type { OutcomeOption } from "@/lib/types";
 
 const ERROR_MESSAGES: Record<string, string> = {
   insufficient_balance: "ポイント残高が不足しています",
   market_not_open: "このマーケットは受付を終了しています",
   invalid_amount: "金額を正しく入力してください",
+  invalid_outcome: "選択肢が無効です",
 };
 
 export default function BetForm({
   marketId,
   pool,
-  homeLabel,
-  awayLabel,
+  outcomeOptions,
   rakeBps,
   maxAmount,
 }: {
   marketId: string;
   pool: PoolBreakdown;
-  homeLabel: string;
-  awayLabel: string;
+  outcomeOptions: OutcomeOption[];
   rakeBps: number;
   maxAmount: number;
 }) {
   const router = useRouter();
-  const [outcome, setOutcome] = useState<"home" | "draw" | "away">("home");
+  const [outcome, setOutcome] = useState(outcomeOptions[0]?.key ?? "");
   const [amount, setAmount] = useState(100);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,14 +36,10 @@ export default function BetForm({
   // full, plus a share of the losing pool's profit after rake — rake is
   // never taken out of your own stake, so betting alone (nobody on the
   // other side) breaks even instead of losing money to the fee.
-  const estimatedMultiplier = useMemo(() => {
-    const current = { home: pool.home, draw: pool.draw, away: pool.away }[outcome];
-    const winningAfter = current + amount;
-    const losingAfter = pool.total + amount - winningAfter;
-    const distributableProfit = losingAfter * (1 - rakeBps / 10000);
-    if (winningAfter === 0) return null;
-    return 1 + distributableProfit / winningAfter;
-  }, [pool, outcome, amount, rakeBps]);
+  const estimatedMultiplier = useMemo(
+    () => estimateMultiplier(pool, outcome, amount, rakeBps),
+    [pool, outcome, amount, rakeBps]
+  );
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,25 +65,19 @@ export default function BetForm({
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        {(
-          [
-            ["home", homeLabel],
-            ["draw", "引分"],
-            ["away", awayLabel],
-          ] as const
-        ).map(([key, label]) => (
+      <div className="flex flex-wrap gap-2">
+        {outcomeOptions.map((o) => (
           <button
-            key={key}
+            key={o.key}
             type="button"
-            onClick={() => setOutcome(key)}
-            className={`text-xs font-bold py-2 rounded-lg border truncate ${
-              outcome === key
+            onClick={() => setOutcome(o.key)}
+            className={`flex-1 min-w-[5.5rem] text-xs font-bold py-2 px-2 rounded-lg border truncate ${
+              outcome === o.key
                 ? "bg-accent text-white border-accent"
                 : "border-line-strong text-ink-muted"
             }`}
           >
-            {label}
+            {o.label}
           </button>
         ))}
       </div>
@@ -114,7 +105,7 @@ export default function BetForm({
 
       <button
         type="submit"
-        disabled={submitting || amount <= 0 || amount > maxAmount}
+        disabled={submitting || amount <= 0 || amount > maxAmount || !outcome}
         className="w-full rounded-lg bg-gold text-white font-bold text-sm py-2.5 disabled:opacity-40"
       >
         {submitting ? "送信中…" : "ベットを確定する"}

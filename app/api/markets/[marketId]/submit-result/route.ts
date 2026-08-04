@@ -12,7 +12,7 @@ import { submitProvisionalResult, rpcErrorStatus, RpcError } from "@/lib/rpc";
 // DAO-vote settle if disputed) happens lazily via finalize_expired_markets,
 // invoked from every market read (lib/data.ts).
 const bodySchema = z.object({
-  outcome: z.enum(["home", "away", "draw"]),
+  outcome: z.string().min(1).max(40),
   disputeWindowMinutes: z.number().int().positive().max(60 * 24 * 7),
 });
 

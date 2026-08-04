@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
 import { getUserBets, getUserTreasuryLogs } from "@/lib/data";
 import { formatDateTime, formatPoints } from "@/lib/format";
+import { marketHeading, outcomeLabel } from "@/lib/outcome";
 
 const ENTRY_LABELS: Record<string, string> = {
   task_reward: "タスク完了報酬",
@@ -67,9 +68,7 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
                   className="flex items-center justify-between rounded-xl border border-line bg-surface p-3 text-sm hover:border-line-strong"
                 >
                   <span>
-                    {b.home_team} vs {b.away_team} ・{" "}
-                    {b.outcome === "home" ? b.home_team : b.outcome === "away" ? b.away_team : "引分"}に{" "}
-                    {formatPoints(b.amount)}
+                    {marketHeading(b)} ・ {outcomeLabel(b.outcome_options, b.outcome)}に {formatPoints(b.amount)}
                   </span>
                   <span className="font-mono-num font-semibold">
                     {b.status === "active" && "結果待ち"}

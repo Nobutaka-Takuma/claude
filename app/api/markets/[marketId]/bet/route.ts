@@ -4,7 +4,7 @@ import { getSessionUserId } from "@/lib/session";
 import { placeBet, rpcErrorStatus, RpcError } from "@/lib/rpc";
 
 const bodySchema = z.object({
-  outcome: z.enum(["home", "away", "draw"]),
+  outcome: z.string().min(1).max(40),
   amount: z.number().int().positive(),
 });
 

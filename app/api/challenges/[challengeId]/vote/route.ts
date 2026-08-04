@@ -4,7 +4,7 @@ import { getSessionUserId } from "@/lib/session";
 import { query } from "@/lib/db";
 
 const bodySchema = z.object({
-  votedOutcome: z.enum(["home", "away", "draw"]),
+  votedOutcome: z.string().min(1).max(40),
 });
 
 export async function POST(req: Request, ctx: RouteContext<"/api/challenges/[challengeId]/vote">) {

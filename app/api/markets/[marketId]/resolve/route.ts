@@ -4,7 +4,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { settleMarket, rpcErrorStatus, RpcError } from "@/lib/rpc";
 
 const bodySchema = z.object({
-  outcome: z.enum(["home", "away", "draw", "void"]),
+  outcome: z.string().min(1).max(40),
 });
 
 export async function POST(req: Request, ctx: RouteContext<"/api/markets/[marketId]/resolve">) {

@@ -2,21 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { OutcomeOption } from "@/lib/types";
 
 export default function ChallengeVoteButtons({
   challengeId,
-  homeLabel,
-  awayLabel,
+  outcomeOptions,
 }: {
   challengeId: string;
-  homeLabel: string;
-  awayLabel: string;
+  outcomeOptions: OutcomeOption[];
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function vote(outcome: "home" | "draw" | "away") {
+  async function vote(outcome: string) {
     setSubmitting(outcome);
     setError(null);
     const res = await fetch(`/api/challenges/${challengeId}/vote`, {
@@ -36,22 +35,16 @@ export default function ChallengeVoteButtons({
 
   return (
     <div className="space-y-1">
-      <div className="grid grid-cols-3 gap-2">
-        {(
-          [
-            ["home", homeLabel],
-            ["draw", "引分"],
-            ["away", awayLabel],
-          ] as const
-        ).map(([key, label]) => (
+      <div className="flex flex-wrap gap-2">
+        {outcomeOptions.map((o) => (
           <button
-            key={key}
+            key={o.key}
             type="button"
             disabled={submitting !== null}
-            onClick={() => vote(key)}
-            className="text-xs font-bold py-2 rounded-lg border border-line-strong text-ink-muted disabled:opacity-50 truncate"
+            onClick={() => vote(o.key)}
+            className="flex-1 min-w-[5.5rem] text-xs font-bold py-2 px-2 rounded-lg border border-line-strong text-ink-muted disabled:opacity-50 truncate"
           >
-            {submitting === key ? "…" : label}に投票
+            {submitting === o.key ? "…" : `${o.label}に投票`}
           </button>
         ))}
       </div>

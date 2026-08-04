@@ -10,6 +10,7 @@ import {
 } from "@/lib/data";
 import { formatDateTime, formatPoints, formatRelativeToNow } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
+import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import OutcomeBar from "@/components/OutcomeBar";
 import StatusBadge from "@/components/StatusBadge";
 import BetForm from "@/components/BetForm";
@@ -25,18 +26,25 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
   if (!market) notFound();
 
   const pools = await getMarketPools(marketId);
-  const pool = summarizePools(pools);
+  const pool = summarizePools(pools, market.outcome_options);
   const myBets = profile ? await getUserBetForMarket(marketId, profile.id) : [];
 
   const disputable = market.status === "pending_resolution" || market.status === "disputed";
   const challenges = disputable ? await getChallengesForMarket(marketId) : [];
   const openChallenge = challenges.find((c) => c.status === "open");
   const votes = openChallenge ? await getVotesForChallenge(openChallenge.id) : [];
-  const voteTally = { home: 0, draw: 0, away: 0 };
+  const voteAmounts = new Map<string, number>();
   for (const v of votes) {
-    if (v.voted_outcome in voteTally) voteTally[v.voted_outcome as "home" | "draw" | "away"] += Number(v.voting_power);
+    voteAmounts.set(v.voted_outcome, (voteAmounts.get(v.voted_outcome) ?? 0) + Number(v.voting_power));
   }
-  const voteTotal = voteTally.home + voteTally.draw + voteTally.away;
+  const voteTotal = [...voteAmounts.values()].reduce((a, b) => a + b, 0);
+  const votePool = {
+    total: voteTotal,
+    options: market.outcome_options.map((o) => {
+      const amount = voteAmounts.get(o.key) ?? 0;
+      return { key: o.key, label: o.label, amount, pct: voteTotal ? Math.round((amount / voteTotal) * 100) : 0 };
+    }),
+  };
 
   return (
     <div className="space-y-5">
@@ -46,12 +54,12 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </Link>
         <div className="flex items-center justify-between gap-2 mt-1">
           <h1 className="text-lg font-extrabold">
-            ⚽ {market.home_team} vs {market.away_team}
+            {market.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(market)}
           </h1>
           <StatusBadge status={market.status} />
         </div>
         <p className="text-xs text-ink-faint mt-1">
-          キックオフ {formatDateTime(market.kickoff_time)} （{formatRelativeToNow(market.kickoff_time)}）
+          {market.market_kind === "match_winner" ? "キックオフ" : "判定期限"} {formatDateTime(market.kickoff_time)} （{formatRelativeToNow(market.kickoff_time)}）
         </p>
         {market.description && <p className="text-sm text-ink-muted mt-2">{market.description}</p>}
       </div>
@@ -61,21 +69,21 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           <span className="text-xs font-bold text-ink-muted">現在のプール比率</span>
           <span className="font-mono-num text-xs text-ink-faint">{formatPoints(pool.total)}</span>
         </div>
-        <OutcomeBar pool={pool} homeLabel={market.home_team} awayLabel={market.away_team} />
+        <OutcomeBar pool={pool} />
         <p className="text-[11px] text-ink-faint">
-          的中者には賭けた分が全額戻り、さらに逆側のプールから運営手数料(テラ銭){(market.rake_bps / 100).toFixed(0)}%を除いた分を山分けします。反対側に誰もベットしていない場合、手数料はかからず賭けた分がそのまま戻ります。
+          的中者には賭けた分が全額戻り、さらに他の選択肢のプールから運営手数料(テラ銭){(market.rake_bps / 100).toFixed(0)}%を除いた分を山分けします。他の選択肢に誰もベットしていない場合、手数料はかからず賭けた分がそのまま戻ります。
         </p>
       </section>
 
       {market.status === "resolved" && (
         <section className="rounded-xl border border-line bg-surface-2 p-4">
-          <p className="text-sm font-bold">結果: {outcomeLabel(market)}</p>
+          <p className="text-sm font-bold">結果: {outcomeLabel(market.outcome_options, market.outcome)}</p>
         </section>
       )}
 
       {(market.status === "pending_resolution" || market.status === "disputed") && (
         <section className="rounded-xl border border-gold/50 bg-gold-soft p-4 space-y-1">
-          <p className="text-sm font-bold text-gold">一次判定: {outcomeLabel(market)}</p>
+          <p className="text-sm font-bold text-gold">一次判定: {outcomeLabel(market.outcome_options, market.outcome)}</p>
           {market.status === "pending_resolution" && market.dispute_deadline && (
             <p className="text-[11px] text-ink-muted">
               異議申し立て期限 {formatDateTime(market.dispute_deadline)}（{formatRelativeToNow(market.dispute_deadline)}）— 期限までに異議がなければ自動的にこの結果で確定・精算されます。
@@ -94,8 +102,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             <BetForm
               marketId={market.id}
               pool={pool}
-              homeLabel={market.home_team}
-              awayLabel={market.away_team}
+              outcomeOptions={market.outcome_options}
               rakeBps={market.rake_bps}
               maxAmount={Number(profile.points_balance)}
             />
@@ -124,8 +131,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             {myBets.map((b) => (
               <li key={b.id} className="flex justify-between">
                 <span>
-                  {b.outcome === "home" ? market.home_team : b.outcome === "away" ? market.away_team : "引分"} に{" "}
-                  {formatPoints(b.amount)}
+                  {outcomeLabel(market.outcome_options, b.outcome)} に {formatPoints(b.amount)}
                 </span>
                 <span className="font-mono-num font-semibold">
                   {b.status === "active" && "結果待ち"}
@@ -153,24 +159,8 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
                 </p>
                 <p>投票締切 {formatDateTime(openChallenge.voting_deadline)}</p>
               </div>
-              <OutcomeBar
-                pool={{
-                  home: voteTally.home,
-                  draw: voteTally.draw,
-                  away: voteTally.away,
-                  total: voteTotal,
-                  homePct: voteTotal ? Math.round((voteTally.home / voteTotal) * 100) : 0,
-                  drawPct: voteTotal ? Math.round((voteTally.draw / voteTotal) * 100) : 0,
-                  awayPct: voteTotal ? Math.round((voteTally.away / voteTotal) * 100) : 0,
-                }}
-                homeLabel={market.home_team}
-                awayLabel={market.away_team}
-              />
-              <ChallengeVoteButtons
-                challengeId={openChallenge.id}
-                homeLabel={market.home_team}
-                awayLabel={market.away_team}
-              />
+              <OutcomeBar pool={votePool} />
+              <ChallengeVoteButtons challengeId={openChallenge.id} outcomeOptions={market.outcome_options} />
             </div>
           )}
         </section>
@@ -178,21 +168,14 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
 
       {profile?.role === "admin" && market.status === "locked" && (
         <div className="space-y-2">
-          <SubmitResultForm marketId={market.id} homeLabel={market.home_team} awayLabel={market.away_team} />
+          <SubmitResultForm marketId={market.id} outcomeOptions={market.outcome_options} />
           <VoidMarketButton marketId={market.id} />
         </div>
       )}
 
       {profile?.role === "admin" && (market.status === "pending_resolution" || market.status === "disputed") && (
-        <AdminResolveForm marketId={market.id} homeLabel={market.home_team} awayLabel={market.away_team} />
+        <AdminResolveForm marketId={market.id} outcomeOptions={market.outcome_options} />
       )}
     </div>
   );
-}
-
-function outcomeLabel(market: { outcome: string | null; home_team: string; away_team: string }) {
-  if (market.outcome === "home") return `${market.home_team} 勝ち`;
-  if (market.outcome === "away") return `${market.away_team} 勝ち`;
-  if (market.outcome === "draw") return "引き分け";
-  return "中止・返金";
 }

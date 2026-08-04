@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node --env-file=.env.local scripts/seed.mjs",
-    "smoke-test": "node scripts/smoke-test.mjs"
+    "smoke-test": "node scripts/smoke-test.mjs",
+    "sync-fixtures": "node --env-file=.env.local scripts/sync-fixtures.mjs",
+    "sync-results": "node --env-file=.env.local scripts/sync-results.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

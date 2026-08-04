@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listMarkets, getMarketPools } from "@/lib/data";
 import { formatRelativeToNow } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
+import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import OutcomeBar from "@/components/OutcomeBar";
 import StatusBadge from "@/components/StatusBadge";
 import type { MarketStatus } from "@/lib/types";
@@ -58,16 +59,16 @@ export default async function MarketsPage({ searchParams }: PageProps<"/markets"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-bold text-sm">
-                    ⚽ {market.home_team} vs {market.away_team}
+                    {market.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(market)}
                   </span>
                   <StatusBadge status={market.status} />
                 </div>
                 <p className="text-xs text-ink-faint">
                   {market.status === "resolved"
-                    ? `結果: ${outcomeLabel(market)}`
+                    ? `結果: ${outcomeLabel(market.outcome_options, market.outcome)}`
                     : `キックオフ ${formatRelativeToNow(market.kickoff_time)}`}
                 </p>
-                <OutcomeBar pool={summarizePools(pools[i])} homeLabel={market.home_team} awayLabel={market.away_team} />
+                <OutcomeBar pool={summarizePools(pools[i], market.outcome_options)} />
               </Link>
             </li>
           ))}
@@ -75,11 +76,4 @@ export default async function MarketsPage({ searchParams }: PageProps<"/markets"
       )}
     </div>
   );
-}
-
-function outcomeLabel(market: { outcome: string | null; home_team: string; away_team: string }) {
-  if (market.outcome === "home") return `${market.home_team} 勝ち`;
-  if (market.outcome === "away") return `${market.away_team} 勝ち`;
-  if (market.outcome === "draw") return "引き分け";
-  return "中止・返金";
 }

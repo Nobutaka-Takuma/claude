@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
 import { getProposedMarkets, getProposalVoteCount, hasVotedOnProposal } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { marketHeading } from "@/lib/outcome";
 import ProposeForm from "@/components/ProposeForm";
 import VoteProposalButton from "@/components/VoteProposalButton";
 
@@ -39,7 +40,7 @@ export default async function ProposeMarketPage() {
             <li key={p.id} className="rounded-xl border border-line bg-surface p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold">
-                  ⚽ {p.home_team} vs {p.away_team}
+                  {p.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(p)}
                 </span>
                 <span className="font-mono-num text-xs text-ink-faint">
                   賛成 {voteCounts[i]}/{APPROVAL_THRESHOLD}

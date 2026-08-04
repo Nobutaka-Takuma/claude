@@ -30,12 +30,7 @@ export function completeTask(
   ]);
 }
 
-export function placeBet(
-  userId: string,
-  marketId: string,
-  outcome: "home" | "away" | "draw",
-  amount: number
-) {
+export function placeBet(userId: string, marketId: string, outcome: string, amount: number) {
   return callRpc<Bet>("select * from place_bet($1, $2, $3, $4)", [
     userId,
     marketId,
@@ -44,22 +39,38 @@ export function placeBet(
   ]);
 }
 
-export function settleMarket(marketId: string, outcome: "home" | "away" | "draw" | "void") {
+// outcome is one of the market's own outcome_options keys, or 'void' to
+// cancel the market and refund every active bet.
+export function settleMarket(marketId: string, outcome: string) {
   return callRpc<Market>("select * from settle_market($1, $2)", [marketId, outcome]);
 }
 
-export function proposeMarket(
-  userId: string,
-  title: string,
-  homeTeam: string,
-  awayTeam: string,
-  kickoffTime: string,
-  description: string | null,
-  category: string
-) {
+export interface ProposeMarketInput {
+  userId: string;
+  title: string;
+  marketKind: "match_winner" | "binary" | "multi_outcome";
+  kickoffTime: string;
+  outcomeOptions: { key: string; label: string }[];
+  description: string | null;
+  category: string;
+  homeTeam: string | null;
+  awayTeam: string | null;
+}
+
+export function proposeMarket(input: ProposeMarketInput) {
   return callRpc<Market>(
-    "select * from propose_market($1, $2, $3, $4, $5, $6, $7)",
-    [userId, title, homeTeam, awayTeam, kickoffTime, description, category]
+    "select * from propose_market($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    [
+      input.userId,
+      input.title,
+      input.marketKind,
+      input.kickoffTime,
+      JSON.stringify(input.outcomeOptions),
+      input.description,
+      input.category,
+      input.homeTeam,
+      input.awayTeam,
+    ]
   );
 }
 
@@ -73,7 +84,7 @@ export function voteMarketProposal(userId: string, marketId: string, threshold: 
 
 export function submitProvisionalResult(
   marketId: string,
-  outcome: "home" | "away" | "draw",
+  outcome: string,
   disputeWindowMinutes: number
 ) {
   return callRpc<Market>("select * from submit_provisional_result($1, $2, $3)", [
@@ -95,17 +106,23 @@ export async function finalizeExpiredMarkets() {
 }
 
 export function rpcErrorStatus(message: string): number {
-  if (message.includes("duplicate") || message.includes("limit_reached") || message.includes("already")) {
-    return 409;
-  }
-  if (message.includes("not_found")) return 404;
   if (
     message.includes("insufficient") ||
     message.includes("not_open") ||
     message.includes("not_awaiting_result") ||
-    message.includes("inactive")
+    message.includes("inactive") ||
+    message.includes("invalid_outcome") ||
+    message.includes("invalid_market_kind") ||
+    message.includes("home_away_required") ||
+    message.includes("duplicate_outcome_keys") ||
+    message.includes("reserved_outcome_key") ||
+    message.includes("kickoff_must_be_future")
   ) {
     return 422;
   }
+  if (message.includes("duplicate") || message.includes("limit_reached") || message.includes("already")) {
+    return 409;
+  }
+  if (message.includes("not_found")) return 404;
   return 400;
 }

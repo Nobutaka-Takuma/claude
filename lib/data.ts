@@ -104,9 +104,19 @@ export async function getUserBetForMarket(marketId: string, userId: string): Pro
   return result.rows;
 }
 
-export async function getUserBets(userId: string): Promise<(Bet & { title: string; home_team: string; away_team: string; status_market: string })[]> {
-  const result = await query<Bet & { title: string; home_team: string; away_team: string; status_market: string }>(
-    `select b.*, m.title, m.home_team, m.away_team, m.status as status_market
+export type BetWithMarket = Bet & {
+  title: string;
+  home_team: string | null;
+  away_team: string | null;
+  status_market: string;
+  market_kind: Market["market_kind"];
+  outcome_options: Market["outcome_options"];
+};
+
+export async function getUserBets(userId: string): Promise<BetWithMarket[]> {
+  const result = await query<BetWithMarket>(
+    `select b.*, m.title, m.home_team, m.away_team, m.status as status_market,
+            m.market_kind, m.outcome_options
      from bets b join markets m on m.id = b.market_id
      where b.user_id = $1
      order by b.placed_at desc

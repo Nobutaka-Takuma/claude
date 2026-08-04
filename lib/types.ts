@@ -9,10 +9,19 @@ export type MarketStatus =
   | "resolved"
   | "cancelled";
 
-export type MarketOutcome = "home" | "away" | "draw" | "void";
 export type BetStatus = "active" | "won" | "lost" | "void" | "refunded";
 export type ChallengeStatus = "open" | "upheld" | "rejected" | "withdrawn";
 export type UserRole = "user" | "moderator" | "admin";
+export type MarketKind = "match_winner" | "binary" | "multi_outcome";
+
+// An outcome is just one of a market's own outcome_options keys (plus the
+// reserved 'void' sentinel for cancel/refund) — there is no fixed enum of
+// outcomes any more since a market can be a 3-way soccer result, a yes/no
+// question, or any other named set of choices.
+export interface OutcomeOption {
+  key: string;
+  label: string;
+}
 
 export interface Profile {
   id: string;
@@ -52,23 +61,25 @@ export interface Market {
   category: string;
   source: "api_auto" | "user_proposed";
   external_ref: string | null;
-  home_team: string;
-  away_team: string;
+  home_team: string | null;
+  away_team: string | null;
   kickoff_time: string;
   status: MarketStatus;
   rake_bps: number;
-  outcome: MarketOutcome | null;
+  outcome: string | null;
   resolution_source: string | null;
   dispute_deadline: string | null;
   created_by: string | null;
   approved_at: string | null;
   resolved_at: string | null;
   created_at: string;
+  market_kind: MarketKind;
+  outcome_options: OutcomeOption[];
 }
 
 export interface MarketPool {
   market_id: string;
-  outcome: MarketOutcome;
+  outcome: string;
   pool_amount: string;
   bettor_count: string;
 }
@@ -77,7 +88,7 @@ export interface Bet {
   id: string;
   market_id: string;
   user_id: string;
-  outcome: MarketOutcome;
+  outcome: string;
   amount: string;
   status: BetStatus;
   payout_amount: string;
@@ -101,7 +112,7 @@ export interface Vote {
   id: string;
   challenge_id: string;
   user_id: string;
-  voted_outcome: MarketOutcome;
+  voted_outcome: string;
   voting_power: string;
   created_at: string;
 }

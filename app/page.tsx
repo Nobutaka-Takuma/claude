@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { getTreasury, listMarkets, getActiveTasks, getUserVerifiedCompletionCounts, getMarketPools } from "@/lib/data";
 import { formatPoints, formatRelativeToNow } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
+import { marketHeading } from "@/lib/outcome";
 import OutcomeBar from "@/components/OutcomeBar";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -101,18 +102,14 @@ export default async function HomePage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-bold text-sm">
-                      ⚽ {market.home_team} vs {market.away_team}
+                      {market.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(market)}
                     </span>
                     <StatusBadge status={market.status} />
                   </div>
                   <p className="text-xs text-ink-faint">
                     キックオフ {formatRelativeToNow(market.kickoff_time)}
                   </p>
-                  <OutcomeBar
-                    pool={summarizePools(pools[i])}
-                    homeLabel={market.home_team}
-                    awayLabel={market.away_team}
-                  />
+                  <OutcomeBar pool={summarizePools(pools[i], market.outcome_options)} />
                 </Link>
               </li>
             ))}

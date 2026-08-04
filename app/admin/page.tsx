@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { listMarkets, getProposedMarkets } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { marketHeading } from "@/lib/outcome";
 import StatusBadge from "@/components/StatusBadge";
 
 export default async function AdminPage() {
@@ -36,7 +37,7 @@ export default async function AdminPage() {
                   href={`/markets/${m.id}`}
                   className="flex items-center justify-between rounded-xl border border-line bg-surface p-3 text-sm hover:border-line-strong"
                 >
-                  <span>⚽ {m.home_team} vs {m.away_team}</span>
+                  <span>{m.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(m)}</span>
                   <StatusBadge status={m.status} />
                 </Link>
               </li>
@@ -54,7 +55,7 @@ export default async function AdminPage() {
             {proposed.map((m) => (
               <li key={m.id} className="rounded-xl border border-line bg-surface p-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span>⚽ {m.home_team} vs {m.away_team}</span>
+                  <span>{m.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(m)}</span>
                   <span className="text-xs text-ink-faint">{formatDateTime(m.kickoff_time)}</span>
                 </div>
                 <Link href="/markets/propose" className="text-xs text-accent-ink font-semibold">
