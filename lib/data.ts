@@ -1,5 +1,5 @@
 import { query } from "./db";
-import { syncMarketStatus } from "./rpc";
+import { syncMarketStatus, finalizeExpiredMarkets } from "./rpc";
 import type {
   Bet,
   Challenge,
@@ -38,8 +38,16 @@ export async function getUserVerifiedCompletionCounts(userId: string): Promise<R
   return Object.fromEntries(result.rows.map((r) => [r.task_id, Number(r.count)]));
 }
 
-export async function listMarkets(status?: string): Promise<Market[]> {
+// Runs both lazy-cron sweeps: kickoff-based locking, then settlement of
+// any provisional result or DAO vote whose window has closed. Called from
+// every market read path instead of relying on a real scheduled job.
+async function tickMarketLifecycle() {
   await syncMarketStatus();
+  await finalizeExpiredMarkets();
+}
+
+export async function listMarkets(status?: string): Promise<Market[]> {
+  await tickMarketLifecycle();
   const result = status
     ? await query<Market>(
         "select * from markets where status = $1 order by kickoff_time asc",
@@ -59,7 +67,7 @@ export async function getProposedMarkets(): Promise<Market[]> {
 }
 
 export async function getMarketById(id: string): Promise<Market | null> {
-  await syncMarketStatus();
+  await tickMarketLifecycle();
   const result = await query<Market>("select * from markets where id = $1", [id]);
   return result.rows[0] ?? null;
 }

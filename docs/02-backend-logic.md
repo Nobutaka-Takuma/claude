@@ -60,8 +60,12 @@ sequenceDiagram
 | `SUPABASE_SERVICE_ROLE_KEY` | サーバー側のみで使うservice-roleキー（クライアントに絶対に露出させない） |
 | `AD_NETWORK_SSV_SECRET` | 広告ネットワークのSSVコールバック署名検証用の共有シークレット |
 
-## 今回スコープ外（次イテレーションで同じ台帳パターンを適用）
-- `place_bet` : ベット時に `points_delta`が負の`treasury_logs`行を作成
-- `settle_market` : マーケット確定時に `rake_collected` と `bet_payout` を一括生成
-- スポーツAPI連携によるマーケット自動生成バッチ
-- Optimistic Oracle の一次判定 → 24時間異議申し立て → DAO投票確定のワークフロー
+## 追記: このドキュメント後に実装したもの
+
+このドキュメントは最初の設計フェーズの成果物で、当時は `place_bet` / `settle_market` / Optimistic Oracle のワークフローをスコープ外としていましたが、その後の開発で同じ台帳パターン（`treasury_logs`）を使って実装済みです。実際のコードとRPCは以下を参照してください。
+
+- `supabase/migrations/00000000000003_bet_and_settlement_rpc.sql` : `place_bet` / `settle_market`（stake-back保証つきの配当計算） / `propose_market` / `vote_market_proposal`
+- `supabase/migrations/00000000000004_stake_back_and_optimistic_oracle.sql` : 配当計算の修正、`submit_provisional_result` / `finalize_expired_markets`（一次判定 → 異議申し立て期間 → 自動確定 or DAO投票確定）
+- ルートハンドラ一式は `app/api/markets/`, `app/api/challenges/` 配下
+
+未実装のまま残っているのは、`README.md`の「次のステップ」に記載の通り、スポーツAPI連携によるマーケット自動生成と、本番Supabaseプロジェクトへの接続のみです。

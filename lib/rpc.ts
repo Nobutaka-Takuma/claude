@@ -71,8 +71,27 @@ export function voteMarketProposal(userId: string, marketId: string, threshold: 
   ]);
 }
 
+export function submitProvisionalResult(
+  marketId: string,
+  outcome: "home" | "away" | "draw",
+  disputeWindowMinutes: number
+) {
+  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3)", [
+    marketId,
+    outcome,
+    disputeWindowMinutes,
+  ]);
+}
+
 export async function syncMarketStatus() {
   await query("select sync_market_status()");
+}
+
+// Lazy-cron counterpart to sync_market_status: settles any
+// pending_resolution market whose dispute window closed uncontested, and
+// tallies + settles any disputed market whose DAO voting_deadline closed.
+export async function finalizeExpiredMarkets() {
+  await query("select finalize_expired_markets()");
 }
 
 export function rpcErrorStatus(message: string): number {
@@ -80,7 +99,12 @@ export function rpcErrorStatus(message: string): number {
     return 409;
   }
   if (message.includes("not_found")) return 404;
-  if (message.includes("insufficient") || message.includes("not_open") || message.includes("inactive")) {
+  if (
+    message.includes("insufficient") ||
+    message.includes("not_open") ||
+    message.includes("not_awaiting_result") ||
+    message.includes("inactive")
+  ) {
     return 422;
   }
   return 400;

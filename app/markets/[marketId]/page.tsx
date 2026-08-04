@@ -16,6 +16,8 @@ import BetForm from "@/components/BetForm";
 import RaiseChallengeForm from "@/components/RaiseChallengeForm";
 import ChallengeVoteButtons from "@/components/ChallengeVoteButtons";
 import AdminResolveForm from "@/components/AdminResolveForm";
+import SubmitResultForm from "@/components/SubmitResultForm";
+import VoidMarketButton from "@/components/VoidMarketButton";
 
 export default async function MarketDetailPage({ params }: PageProps<"/markets/[marketId]">) {
   const { marketId } = await params;
@@ -26,7 +28,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
   const pool = summarizePools(pools);
   const myBets = profile ? await getUserBetForMarket(marketId, profile.id) : [];
 
-  const disputable = market.status === "locked" || market.status === "pending_resolution" || market.status === "disputed";
+  const disputable = market.status === "pending_resolution" || market.status === "disputed";
   const challenges = disputable ? await getChallengesForMarket(marketId) : [];
   const openChallenge = challenges.find((c) => c.status === "open");
   const votes = openChallenge ? await getVotesForChallenge(openChallenge.id) : [];
@@ -61,15 +63,27 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </div>
         <OutcomeBar pool={pool} homeLabel={market.home_team} awayLabel={market.away_team} />
         <p className="text-[11px] text-ink-faint">
-          運営手数料(テラ銭) {(market.rake_bps / 100).toFixed(0)}% 控除後、的中者で山分けします。
+          的中者には賭けた分が全額戻り、さらに逆側のプールから運営手数料(テラ銭){(market.rake_bps / 100).toFixed(0)}%を除いた分を山分けします。反対側に誰もベットしていない場合、手数料はかからず賭けた分がそのまま戻ります。
         </p>
       </section>
 
       {market.status === "resolved" && (
         <section className="rounded-xl border border-line bg-surface-2 p-4">
-          <p className="text-sm font-bold">
-            結果: {market.outcome === "home" ? `${market.home_team} 勝ち` : market.outcome === "away" ? `${market.away_team} 勝ち` : market.outcome === "draw" ? "引き分け" : "中止（返金）"}
-          </p>
+          <p className="text-sm font-bold">結果: {outcomeLabel(market)}</p>
+        </section>
+      )}
+
+      {(market.status === "pending_resolution" || market.status === "disputed") && (
+        <section className="rounded-xl border border-gold/50 bg-gold-soft p-4 space-y-1">
+          <p className="text-sm font-bold text-gold">一次判定: {outcomeLabel(market)}</p>
+          {market.status === "pending_resolution" && market.dispute_deadline && (
+            <p className="text-[11px] text-ink-muted">
+              異議申し立て期限 {formatDateTime(market.dispute_deadline)}（{formatRelativeToNow(market.dispute_deadline)}）— 期限までに異議がなければ自動的にこの結果で確定・精算されます。
+            </p>
+          )}
+          {market.status === "disputed" && (
+            <p className="text-[11px] text-ink-muted">異議が提出されたため、DAO投票で最終結果を決定します。</p>
+          )}
         </section>
       )}
 
@@ -95,6 +109,11 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             </p>
           )}
           <p className="text-[11px] text-neg">⚠ キックオフ後は自動的にベット不可になります</p>
+          {profile?.role === "admin" && (
+            <div className="pt-2 border-t border-line">
+              <VoidMarketButton marketId={market.id} />
+            </div>
+          )}
         </section>
       )}
 
@@ -157,9 +176,23 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </section>
       )}
 
-      {profile?.role === "admin" && ["open", "locked", "pending_resolution", "disputed"].includes(market.status) && (
+      {profile?.role === "admin" && market.status === "locked" && (
+        <div className="space-y-2">
+          <SubmitResultForm marketId={market.id} homeLabel={market.home_team} awayLabel={market.away_team} />
+          <VoidMarketButton marketId={market.id} />
+        </div>
+      )}
+
+      {profile?.role === "admin" && (market.status === "pending_resolution" || market.status === "disputed") && (
         <AdminResolveForm marketId={market.id} homeLabel={market.home_team} awayLabel={market.away_team} />
       )}
     </div>
   );
+}
+
+function outcomeLabel(market: { outcome: string | null; home_team: string; away_team: string }) {
+  if (market.outcome === "home") return `${market.home_team} 勝ち`;
+  if (market.outcome === "away") return `${market.away_team} 勝ち`;
+  if (market.outcome === "draw") return "引き分け";
+  return "中止・返金";
 }

@@ -31,13 +31,17 @@ export default function BetForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Mirrors settle_market's payout math: your stake always comes back in
+  // full, plus a share of the losing pool's profit after rake — rake is
+  // never taken out of your own stake, so betting alone (nobody on the
+  // other side) breaks even instead of losing money to the fee.
   const estimatedMultiplier = useMemo(() => {
     const current = { home: pool.home, draw: pool.draw, away: pool.away }[outcome];
-    const totalAfter = pool.total + amount;
     const winningAfter = current + amount;
-    const distributable = totalAfter * (1 - rakeBps / 10000);
+    const losingAfter = pool.total + amount - winningAfter;
+    const distributableProfit = losingAfter * (1 - rakeBps / 10000);
     if (winningAfter === 0) return null;
-    return distributable / winningAfter;
+    return 1 + distributableProfit / winningAfter;
   }, [pool, outcome, amount, rakeBps]);
 
   async function submit(e: React.FormEvent) {

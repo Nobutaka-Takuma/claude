@@ -17,7 +17,7 @@ export default function AdminResolveForm({
   const [error, setError] = useState<string | null>(null);
 
   async function resolve(outcome: "home" | "draw" | "away" | "void") {
-    if (!confirm(`この結果で確定し、精算します: ${outcome}`)) return;
+    if (!confirm(`異議申し立て期間・DAO投票をスキップしてこの結果で即時確定します: ${outcome}\nよろしいですか？`)) return;
     setSubmitting(outcome);
     setError(null);
     const res = await fetch(`/api/markets/${marketId}/resolve`, {
@@ -35,8 +35,11 @@ export default function AdminResolveForm({
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-gold/50 bg-gold-soft p-3">
-      <p className="text-xs font-bold text-gold">管理者操作: 判定を確定して精算</p>
+    <div className="space-y-2 rounded-lg border border-neg/50 p-3">
+      <p className="text-xs font-bold text-neg">管理者操作（緊急）: オラクルをスキップして即時確定</p>
+      <p className="text-[11px] text-ink-faint">
+        通常は上の「一次判定を提出」を使ってください。これは異議申し立て期間・DAO投票を飛ばして強制的に精算する緊急用の操作です。
+      </p>
       <div className="grid grid-cols-2 gap-2">
         {(
           [
@@ -51,7 +54,7 @@ export default function AdminResolveForm({
             type="button"
             disabled={submitting !== null}
             onClick={() => resolve(key)}
-            className="text-xs font-bold py-2 rounded-lg bg-white border border-gold text-gold disabled:opacity-50"
+            className="text-xs font-bold py-2 rounded-lg bg-white border border-neg text-neg disabled:opacity-50"
           >
             {submitting === key ? "処理中…" : label}
           </button>

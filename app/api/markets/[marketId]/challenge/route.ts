@@ -28,7 +28,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
   if (!market) {
     return NextResponse.json({ error: "market_not_found" }, { status: 404 });
   }
-  if (!["locked", "pending_resolution"].includes(market.status)) {
+  if (market.status !== "pending_resolution") {
     return NextResponse.json({ error: "market_not_disputable" }, { status: 422 });
   }
 
