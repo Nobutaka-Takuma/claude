@@ -39,14 +39,21 @@ export function summarizePools(pools: MarketPool[], outcomeOptions: OutcomeOptio
 
 // Estimated parimutuel payout multiplier for staking `amount` on `key`,
 // mirroring settle_market's payout math: full stake back, plus a share
-// of the *other* options' combined pool after rake. Betting where
-// nobody has bet against you breaks even (multiplier 1) instead of
-// losing money to the rake.
-export function estimateMultiplier(pool: PoolBreakdown, key: string, amount: number, rakeBps: number): number | null {
+// of the *other* options' combined pool after rake, plus a share of the
+// prize money the market's creator seeded. The seed is why a first bet
+// on an otherwise empty market is worth placing — without it the
+// multiplier would be exactly 1.
+export function estimateMultiplier(
+  pool: PoolBreakdown,
+  key: string,
+  amount: number,
+  rakeBps: number,
+  seedPool = 0
+): number | null {
   const current = pool.options.find((o) => o.key === key)?.amount ?? 0;
   const winningAfter = current + amount;
   if (winningAfter <= 0) return null;
   const losingAfter = pool.total + amount - winningAfter;
-  const distributableProfit = losingAfter * (1 - rakeBps / 10000);
+  const distributableProfit = losingAfter * (1 - rakeBps / 10000) + seedPool;
   return 1 + distributableProfit / winningAfter;
 }

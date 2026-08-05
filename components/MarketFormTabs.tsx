@@ -6,11 +6,13 @@ import MarketForm, { type MarketFormMode } from "@/components/MarketForm";
 export default function MarketFormTabs({
   creationCost,
   creatorFeePct,
+  seedAmount,
   approvalThreshold,
   balance,
 }: {
   creationCost: number;
   creatorFeePct: number;
+  seedAmount: number;
   approvalThreshold: number;
   balance: number;
 }) {
@@ -56,6 +58,7 @@ export default function MarketFormTabs({
         mode={mode}
         creationCost={creationCost}
         creatorFeePct={creatorFeePct}
+        seedAmount={seedAmount}
         approvalThreshold={approvalThreshold}
       />
     </div>

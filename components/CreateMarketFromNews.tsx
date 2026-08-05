@@ -9,6 +9,7 @@ export default function CreateMarketFromNews({
   category,
   creationCost,
   creatorFeePct,
+  seedAmount,
   approvalThreshold,
   isLoggedIn,
   balance,
@@ -17,6 +18,7 @@ export default function CreateMarketFromNews({
   category: string;
   creationCost: number;
   creatorFeePct: number;
+  seedAmount: number;
   approvalThreshold: number;
   isLoggedIn: boolean;
   balance: number;
@@ -71,6 +73,7 @@ export default function CreateMarketFromNews({
         defaultKind="binary"
         creationCost={creationCost}
         creatorFeePct={creatorFeePct}
+        seedAmount={seedAmount}
         approvalThreshold={approvalThreshold}
         onCreated={() => setOpen(false)}
       />

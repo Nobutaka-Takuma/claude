@@ -6,6 +6,7 @@ import { marketHeading } from "@/lib/outcome";
 import {
   MARKET_CREATION_COST,
   MARKET_CREATOR_FEE_BPS,
+  MARKET_SEED_BPS,
   MARKET_APPROVAL_THRESHOLD,
 } from "@/lib/config";
 import MarketFormTabs from "@/components/MarketFormTabs";
@@ -21,6 +22,7 @@ export default async function ProposeMarketPage() {
 
   const creationCost = MARKET_CREATION_COST();
   const creatorFeePct = MARKET_CREATOR_FEE_BPS() / 100;
+  const seedAmount = Math.floor((MARKET_CREATION_COST() * MARKET_SEED_BPS()) / 10000);
   const approvalThreshold = MARKET_APPROVAL_THRESHOLD();
 
   return (
@@ -36,6 +38,7 @@ export default async function ProposeMarketPage() {
         <MarketFormTabs
           creationCost={creationCost}
           creatorFeePct={creatorFeePct}
+          seedAmount={seedAmount}
           approvalThreshold={approvalThreshold}
           balance={Number(profile.points_balance)}
         />

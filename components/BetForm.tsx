@@ -14,6 +14,7 @@ export default function BetForm({
   pool,
   outcomeOptions,
   rakeBps,
+  seedPool = 0,
   maxAmount,
   compact = false,
 }: {
@@ -21,6 +22,7 @@ export default function BetForm({
   pool: PoolBreakdown;
   outcomeOptions: OutcomeOption[];
   rakeBps: number;
+  seedPool?: number;
   maxAmount: number;
   // Skips the amount input and multiplier caption, showing just the
   // outcome buttons (each with its own odds) — used inline in the news
@@ -39,8 +41,8 @@ export default function BetForm({
   // never taken out of your own stake, so betting alone (nobody on the
   // other side) breaks even instead of losing money to the fee.
   const estimatedMultiplier = useMemo(
-    () => estimateMultiplier(pool, outcome, amount, rakeBps),
-    [pool, outcome, amount, rakeBps]
+    () => estimateMultiplier(pool, outcome, amount, rakeBps, seedPool),
+    [pool, outcome, amount, rakeBps, seedPool]
   );
 
   // Always quotes the multiplier for the stake actually about to be
@@ -48,7 +50,7 @@ export default function BetForm({
   // numbers (x91 on an untouched side) that collapse the moment the real
   // stake lands and moves the pool.
   const multiplierFor = (key: string, stake: number) =>
-    estimateMultiplier(pool, key, Math.max(stake, 1), rakeBps);
+    estimateMultiplier(pool, key, Math.max(stake, 1), rakeBps, seedPool);
 
   async function placeBet(chosenOutcome: string, chosenAmount: number) {
     setSubmitting(chosenOutcome);

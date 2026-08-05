@@ -2,20 +2,24 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
 import { createMarket, rpcErrorStatus, RpcError } from "@/lib/rpc";
-import { MARKET_CREATION_COST, MARKET_CREATOR_FEE_BPS } from "@/lib/config";
+import { MARKET_CREATION_COST, MARKET_CREATOR_FEE_BPS, MARKET_SEED_BPS } from "@/lib/config";
 
 // POST /api/markets/create
 //
-// Paid market creation: charges MARKET_CREATION_COST and opens the market
-// straight away, with the creator entitled to a share of its rake. The
-// free, vote-to-open alternative lives at /api/markets/propose.
+// Paid market creation: charges MARKET_CREATION_COST, seeds most of it as
+// prize money for the market's winners, and opens the market straight
+// away. The creator is then entitled to a share of its rake. The free,
+// vote-to-open alternative lives at /api/markets/propose.
 const bodySchema = z
   .object({
     title: z.string().min(3).max(120),
     marketKind: z.enum(["match_winner", "binary", "multi_outcome"]),
     closesAt: z.string().min(1),
+    resolvesAt: z.string().min(1).optional(),
     description: z.string().max(2000).optional(),
     category: z.string().max(40).optional(),
+    league: z.string().max(60).optional(),
+    matchweek: z.number().int().positive().max(99).optional(),
     homeTeam: z.string().min(1).max(60).optional(),
     awayTeam: z.string().min(1).max(60).optional(),
     newsArticleId: z.string().uuid().optional(),
@@ -49,14 +53,18 @@ export async function POST(req: Request) {
       title: parsed.data.title,
       marketKind: parsed.data.marketKind,
       closesAt: new Date(parsed.data.closesAt).toISOString(),
+      resolvesAt: parsed.data.resolvesAt ? new Date(parsed.data.resolvesAt).toISOString() : null,
       outcomeOptions: parsed.data.outcomeOptions ?? [],
       description: parsed.data.description ?? null,
       category: parsed.data.category ?? "general",
+      league: parsed.data.league ?? null,
+      matchweek: parsed.data.matchweek ?? null,
       homeTeam: parsed.data.homeTeam ?? null,
       awayTeam: parsed.data.awayTeam ?? null,
       newsArticleId: parsed.data.newsArticleId ?? null,
       creationCost: MARKET_CREATION_COST(),
       creatorFeeBps: MARKET_CREATOR_FEE_BPS(),
+      seedBps: MARKET_SEED_BPS(),
     });
     return NextResponse.json({ ok: true, market });
   } catch (err) {

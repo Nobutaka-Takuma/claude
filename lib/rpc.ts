@@ -87,6 +87,10 @@ export interface CreateMarketInput {
   newsArticleId: string | null;
   creationCost: number;
   creatorFeeBps: number;
+  resolvesAt: string | null;
+  league: string | null;
+  matchweek: number | null;
+  seedBps: number;
 }
 
 // Paid creation: charges creationCost and opens the market immediately,
@@ -94,7 +98,7 @@ export interface CreateMarketInput {
 // (proposeMarket above is the free, vote-to-open alternative.)
 export function createMarket(input: CreateMarketInput) {
   return callRpc<Market>(
-    "select * from create_market($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+    "select * from create_market($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
     [
       input.userId,
       input.title,
@@ -108,6 +112,10 @@ export function createMarket(input: CreateMarketInput) {
       input.newsArticleId,
       input.creationCost,
       input.creatorFeeBps,
+      input.resolvesAt,
+      input.league,
+      input.matchweek,
+      input.seedBps,
     ]
   );
 }

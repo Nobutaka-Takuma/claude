@@ -3,6 +3,7 @@ import { getNewsFeed, getMarketPools, getCommentsForArticle } from "@/lib/data";
 import {
   MARKET_CREATION_COST,
   MARKET_CREATOR_FEE_BPS,
+  MARKET_SEED_BPS,
   MARKET_APPROVAL_THRESHOLD,
 } from "@/lib/config";
 import NewsArticleCard from "@/components/NewsArticleCard";
@@ -21,6 +22,7 @@ export default async function NewsPage() {
 
   const creationCost = MARKET_CREATION_COST();
   const creatorFeePct = MARKET_CREATOR_FEE_BPS() / 100;
+  const seedAmount = Math.floor((MARKET_CREATION_COST() * MARKET_SEED_BPS()) / 10000);
   const approvalThreshold = MARKET_APPROVAL_THRESHOLD();
 
   return (
@@ -48,6 +50,7 @@ export default async function NewsPage() {
               profile={profile}
               creationCost={creationCost}
               creatorFeePct={creatorFeePct}
+          seedAmount={seedAmount}
               approvalThreshold={approvalThreshold}
             />
           ))}

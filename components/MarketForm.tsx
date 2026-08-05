@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
+import { CATEGORIES, categoryDef } from "@/lib/categories";
 
 export type MarketKind = "match_winner" | "binary" | "multi_outcome";
 
@@ -24,6 +25,7 @@ export default function MarketForm({
   defaultKind = "binary",
   creationCost,
   creatorFeePct,
+  seedAmount,
   approvalThreshold,
   onCreated,
 }: {
@@ -33,19 +35,27 @@ export default function MarketForm({
   defaultKind?: MarketKind;
   creationCost: number;
   creatorFeePct: number;
+  seedAmount: number;
   approvalThreshold: number;
   onCreated?: () => void;
 }) {
   const router = useRouter();
   const [marketKind, setMarketKind] = useState<MarketKind>(defaultKind);
+  const [category, setCategory] = useState(defaultCategory);
   const [title, setTitle] = useState("");
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
+  const [league, setLeague] = useState("");
+  const [matchweek, setMatchweek] = useState("");
   const [closesAt, setClosesAt] = useState("");
+  const [resolvesAt, setResolvesAt] = useState("");
   const [description, setDescription] = useState("");
   const [customOptions, setCustomOptions] = useState(["", ""]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const catDef = categoryDef(category);
+  const isSport = !!catDef.isSport;
 
   function updateOption(i: number, value: string) {
     setCustomOptions((prev) => prev.map((o, idx) => (idx === i ? value : o)));
@@ -55,7 +65,10 @@ export default function MarketForm({
     setTitle("");
     setHomeTeam("");
     setAwayTeam("");
+    setLeague("");
+    setMatchweek("");
     setClosesAt("");
+    setResolvesAt("");
     setDescription("");
     setCustomOptions(["", ""]);
   }
@@ -81,7 +94,9 @@ export default function MarketForm({
       title,
       marketKind,
       description,
-      category: newsArticleId ? defaultCategory : undefined,
+      category,
+      league: isSport && league.trim() ? league.trim() : undefined,
+      matchweek: isSport && matchweek ? Number(matchweek) : undefined,
       homeTeam: marketKind === "match_winner" ? homeTeam : undefined,
       awayTeam: marketKind === "match_winner" ? awayTeam : undefined,
       outcomeOptions: marketKind === "match_winner" ? undefined : outcomeOptions,
@@ -92,7 +107,7 @@ export default function MarketForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
         mode === "paid"
-          ? { ...shared, closesAt, newsArticleId }
+          ? { ...shared, closesAt, resolvesAt: resolvesAt || undefined, newsArticleId }
           : { ...shared, kickoffTime: closesAt }
       ),
     });
@@ -117,6 +132,26 @@ export default function MarketForm({
   return (
     <form onSubmit={submit} className="space-y-3">
       <div className="space-y-1">
+        <span className="text-xs text-ink-muted">カテゴリ</span>
+        <div className="flex flex-wrap gap-1.5">
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => setCategory(c.key)}
+              className={`text-[11px] font-semibold py-1.5 px-2.5 rounded-full border ${
+                category === c.key
+                  ? "bg-ink text-bg border-ink"
+                  : "border-line-strong text-ink-muted"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-1">
         <span className="text-xs text-ink-muted">お題の種類</span>
         <div className="grid grid-cols-3 gap-2">
           {KIND_OPTIONS.map((o) => (
@@ -138,6 +173,38 @@ export default function MarketForm({
           {KIND_OPTIONS.find((o) => o.kind === marketKind)?.hint}
         </p>
       </div>
+
+      {isSport && (
+        <div className="grid grid-cols-3 gap-2">
+          <label className="block space-y-1 col-span-2">
+            <span className="text-xs text-ink-muted">大会・リーグ</span>
+            <input
+              list="league-suggestions"
+              value={league}
+              onChange={(e) => setLeague(e.target.value)}
+              placeholder="例: J1リーグ"
+              className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
+            />
+            <datalist id="league-suggestions">
+              {(catDef.leagueSuggestions ?? []).map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-ink-muted">第何節</span>
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={matchweek}
+              onChange={(e) => setMatchweek(e.target.value)}
+              placeholder="21"
+              className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-mono-num"
+            />
+          </label>
+        </div>
+      )}
 
       <label className="block space-y-1">
         <span className="text-xs text-ink-muted">質問文</span>
@@ -221,7 +288,7 @@ export default function MarketForm({
 
       <label className="block space-y-1">
         <span className="text-xs text-ink-muted">
-          {marketKind === "match_winner" ? "キックオフ日時（ここでベット締切）" : "ベット締切日時"}
+          {marketKind === "match_winner" ? "キックオフ日時（ベット締切）" : "ベット締切日時"}
         </span>
         <input
           required
@@ -232,13 +299,28 @@ export default function MarketForm({
         />
       </label>
 
+      {mode === "paid" && (
+        <label className="block space-y-1">
+          <span className="text-xs text-ink-muted">結果判定の予定日時（任意）</span>
+          <input
+            type="datetime-local"
+            value={resolvesAt}
+            onChange={(e) => setResolvesAt(e.target.value)}
+            className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
+          />
+          <span className="block text-[11px] text-ink-faint">
+            いつ結果が分かるかの目安です。ベッターが「いつ決着するか」を判断できるようになります。
+          </span>
+        </label>
+      )}
+
       <label className="block space-y-1">
-        <span className="text-xs text-ink-muted">補足説明（任意）</span>
+        <span className="text-xs text-ink-muted">判定基準・補足（任意）</span>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
-          placeholder="判定基準など。例: 東京市場の終値ベースで判定します。"
+          placeholder="例: 東京市場の終値ベースで判定します。"
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
       </label>
@@ -261,8 +343,8 @@ export default function MarketForm({
 
       <p className="text-[11px] text-ink-faint">
         {mode === "paid"
-          ? `すぐに公開され、ベットを受け付けます。的中者への配当後に残る運営手数料(テラ銭)のうち ${creatorFeePct}% があなたに支払われます。盛り上がったマーケットほど作成者の取り分が増えます。`
-          : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。作成者への手数料分配はありません。`}
+          ? `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初にベットする人も勝てば増えます。さらに精算時のテラ銭の${creatorFeePct}%があなたに支払われます。`
+          : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。初期賞金も作成者報酬もありません。`}
       </p>
     </form>
   );

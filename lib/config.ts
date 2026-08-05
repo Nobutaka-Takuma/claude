@@ -15,6 +15,12 @@ export const SIGNUP_BONUS_POINTS = () => intFromEnv("SIGNUP_BONUS_POINTS", 1000)
 export const MARKET_CREATION_COST = () => intFromEnv("MARKET_CREATION_COST", 100);
 export const MARKET_CREATOR_FEE_BPS = () => intFromEnv("MARKET_CREATOR_FEE_BPS", 1000);
 
+// Share of the creation fee that becomes seeded prize money for the
+// market's winners (9000 bps = 90%), rather than being kept by the
+// treasury. Without a seed, the first bet on a market can only ever
+// break even, so nobody has a reason to place it.
+export const MARKET_SEED_BPS = () => intFromEnv("MARKET_SEED_BPS", 9000);
+
 // Approval votes a *free* proposal needs before it opens for betting.
 export const MARKET_APPROVAL_THRESHOLD = () => intFromEnv("MARKET_APPROVAL_THRESHOLD", 3);
 

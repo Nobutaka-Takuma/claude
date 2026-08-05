@@ -7,7 +7,9 @@ import {
   getUserBetForMarket,
   getChallengesForMarket,
   getVotesForChallenge,
+  getNewsArticleById,
 } from "@/lib/data";
+import { categoryIcon, categoryLabel } from "@/lib/categories";
 import { formatDateTime, formatPoints, formatRelativeToNow } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
@@ -29,6 +31,9 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
   const pools = await getMarketPools(marketId);
   const pool = summarizePools(pools, market.outcome_options);
   const myBets = profile ? await getUserBetForMarket(marketId, profile.id) : [];
+  const sourceArticle = market.news_article_id
+    ? await getNewsArticleById(market.news_article_id)
+    : null;
 
   const disputable = market.status === "pending_resolution" || market.status === "disputed";
   const challenges = disputable ? await getChallengesForMarket(marketId) : [];
@@ -55,15 +60,81 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </Link>
         <div className="flex items-center justify-between gap-2 mt-1">
           <h1 className="text-lg font-extrabold">
-            {market.market_kind === "match_winner" ? "⚽" : "❓"} {marketHeading(market)}
+            {categoryIcon(market.category)} {marketHeading(market)}
           </h1>
           <StatusBadge status={market.status} />
         </div>
-        <p className="text-xs text-ink-faint mt-1">
-          {market.market_kind === "match_winner" ? "キックオフ" : "判定期限"} {formatDateTime(market.kickoff_time)} （{formatRelativeToNow(market.kickoff_time)}）
-        </p>
+
+        <div className="flex flex-wrap gap-1.5 mt-2 text-[11px] font-semibold">
+          <Link
+            href={`/markets?category=${encodeURIComponent(market.category)}`}
+            className="rounded-full border border-line px-2.5 py-0.5 text-ink-faint"
+          >
+            {categoryLabel(market.category)}
+          </Link>
+          {market.league && (
+            <Link
+              href={`/markets?league=${encodeURIComponent(market.league)}`}
+              className="rounded-full border border-line px-2.5 py-0.5 text-ink-faint"
+            >
+              {market.league}
+            </Link>
+          )}
+          {market.matchweek !== null && market.league && (
+            <Link
+              href={`/markets?league=${encodeURIComponent(market.league)}&matchweek=${market.matchweek}`}
+              className="rounded-full border border-line px-2.5 py-0.5 text-ink-faint font-mono-num"
+            >
+              第{market.matchweek}節
+            </Link>
+          )}
+        </div>
+
+        <dl className="mt-2 space-y-0.5 text-xs text-ink-faint">
+          <div className="flex gap-2">
+            <dt className="w-20 shrink-0">ベット締切</dt>
+            <dd>
+              {formatDateTime(market.kickoff_time)}（{formatRelativeToNow(market.kickoff_time)}）
+            </dd>
+          </div>
+          {market.resolves_at && (
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0">判定予定</dt>
+              <dd>
+                {formatDateTime(market.resolves_at)}（{formatRelativeToNow(market.resolves_at)}）
+              </dd>
+            </div>
+          )}
+        </dl>
+
         {market.description && <p className="text-sm text-ink-muted mt-2">{market.description}</p>}
       </div>
+
+      {sourceArticle && (
+        <section className="rounded-xl border border-line bg-surface-2 p-4 space-y-1">
+          <span className="text-[10px] font-bold text-ink-faint">📰 このマーケットの元になったニュース</span>
+          <p className="text-sm font-bold leading-snug">{sourceArticle.title}</p>
+          <p className="text-[11px] text-ink-faint">
+            {sourceArticle.source} ・ {formatDateTime(sourceArticle.published_at)}
+          </p>
+          <p className="text-xs text-ink-muted line-clamp-3">{sourceArticle.body}</p>
+          <div className="flex gap-3 pt-1">
+            <Link href="/news" className="text-[11px] text-accent-ink font-semibold">
+              ニュースフィードで見る &gt;
+            </Link>
+            {sourceArticle.url && (
+              <a
+                href={sourceArticle.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-accent-ink font-semibold"
+              >
+                元記事を読む ↗
+              </a>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl border border-line bg-surface p-4 space-y-2">
         <div className="flex items-center justify-between">
@@ -71,8 +142,13 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           <span className="font-mono-num text-xs text-ink-faint">{formatPoints(pool.total)}</span>
         </div>
         <OutcomeBar pool={pool} />
+        {Number(market.seed_pool) > 0 && (
+          <p className="text-[11px] font-semibold text-gold">
+            🎁 作成者が積んだ初期賞金 {formatPoints(market.seed_pool)} が的中者に上乗せ分配されます
+          </p>
+        )}
         <p className="text-[11px] text-ink-faint">
-          的中者には賭けた分が全額戻り、さらに他の選択肢のプールから運営手数料(テラ銭){(market.rake_bps / 100).toFixed(0)}%を除いた分を山分けします。他の選択肢に誰もベットしていない場合、手数料はかからず賭けた分がそのまま戻ります。
+          的中者には賭けた分が全額戻り、さらに他の選択肢のプールから運営手数料(テラ銭){(market.rake_bps / 100).toFixed(0)}%を除いた分と初期賞金を山分けします。
         </p>
       </section>
 
@@ -112,6 +188,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
               pool={pool}
               outcomeOptions={market.outcome_options}
               rakeBps={market.rake_bps}
+              seedPool={Number(market.seed_pool)}
               maxAmount={Number(profile.points_balance)}
             />
           ) : (

@@ -79,6 +79,13 @@ export interface Market {
   creator_fee_bps: number;
   resolution_proposed_by: string | null;
   resolution_bond: string;
+  // Prize money the creator seeded, paid to winners on settlement.
+  seed_pool: string;
+  // When the result is expected to be known. kickoff_time is the betting
+  // deadline; this is the separate "when will we find out" date.
+  resolves_at: string | null;
+  league: string | null;
+  matchweek: number | null;
 }
 
 export interface NewsArticle {

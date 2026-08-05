@@ -6,6 +6,7 @@ import type {
   Comment,
   Market,
   MarketPool,
+  NewsArticle,
   NewsFeedItem,
   Task,
   Treasury,
@@ -72,6 +73,73 @@ export async function getMarketById(id: string): Promise<Market | null> {
   await tickMarketLifecycle();
   const result = await query<Market>("select * from markets where id = $1", [id]);
   return result.rows[0] ?? null;
+}
+
+export async function getNewsArticleById(id: string): Promise<NewsArticle | null> {
+  const result = await query<NewsArticle>("select * from news_articles where id = $1", [id]);
+  return result.rows[0] ?? null;
+}
+
+export interface MarketSearchFilters {
+  statuses: string[];
+  category?: string | null;
+  league?: string | null;
+  matchweek?: number | null;
+  q?: string | null;
+}
+
+// Plain ILIKE rather than full-text search: Postgres's built-in text
+// search doesn't tokenise Japanese, so a tsvector index would match on
+// whole strings only and be worse than a substring scan. At this scale a
+// sequential scan is fine; if the market count grows, the answer is
+// pg_trgm + a GIN index (or a dedicated search service), not tsvector.
+export async function searchMarkets(filters: MarketSearchFilters): Promise<Market[]> {
+  await tickMarketLifecycle();
+
+  const conditions: string[] = ["status = any($1)"];
+  const params: unknown[] = [filters.statuses];
+
+  if (filters.category) {
+    params.push(filters.category);
+    conditions.push(`category = $${params.length}`);
+  }
+  if (filters.league) {
+    params.push(filters.league);
+    conditions.push(`league = $${params.length}`);
+  }
+  if (filters.matchweek) {
+    params.push(filters.matchweek);
+    conditions.push(`matchweek = $${params.length}`);
+  }
+  if (filters.q) {
+    params.push(`%${filters.q}%`);
+    const p = `$${params.length}`;
+    conditions.push(
+      `(title ilike ${p} or coalesce(description,'') ilike ${p} or coalesce(home_team,'') ilike ${p}
+        or coalesce(away_team,'') ilike ${p} or coalesce(league,'') ilike ${p})`
+    );
+  }
+
+  const result = await query<Market>(
+    `select * from markets where ${conditions.join(" and ")} order by kickoff_time asc`,
+    params
+  );
+  return result.rows;
+}
+
+// Distinct league/matchweek pairs actually present, for the filter chips.
+export async function getLeagueFacets(
+  statuses: string[]
+): Promise<{ league: string; matchweek: number | null; count: string }[]> {
+  const result = await query<{ league: string; matchweek: number | null; count: string }>(
+    `select league, matchweek, count(*) as count
+     from markets
+     where league is not null and status = any($1)
+     group by league, matchweek
+     order by league, matchweek nulls first`,
+    [statuses]
+  );
+  return result.rows;
 }
 
 export async function getMarketPools(marketId: string): Promise<MarketPool[]> {

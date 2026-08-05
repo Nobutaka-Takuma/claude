@@ -8,14 +8,7 @@ import BetForm from "@/components/BetForm";
 import StatusBadge from "@/components/StatusBadge";
 import CommentSection from "@/components/CommentSection";
 import CreateMarketFromNews from "@/components/CreateMarketFromNews";
-
-const CATEGORY_ICON: Record<string, string> = {
-  economy: "💹",
-  sports: "⚽",
-  politics: "🏛",
-  tech: "💻",
-  general: "📰",
-};
+import { categoryIcon } from "@/lib/categories";
 
 export default function NewsArticleCard({
   article,
@@ -24,6 +17,7 @@ export default function NewsArticleCard({
   profile,
   creationCost,
   creatorFeePct,
+  seedAmount,
   approvalThreshold,
 }: {
   article: NewsFeedItem;
@@ -32,13 +26,14 @@ export default function NewsArticleCard({
   profile: Profile | null;
   creationCost: number;
   creatorFeePct: number;
+  seedAmount: number;
   approvalThreshold: number;
 }) {
   return (
     <article className="rounded-xl border border-line bg-surface overflow-hidden">
       <div className="p-4 space-y-2">
         <div className="flex items-center gap-2 text-[11px] text-ink-faint">
-          <span>{CATEGORY_ICON[article.category] ?? "📰"}</span>
+          <span>{categoryIcon(article.category)}</span>
           <span>{formatDateTime(article.published_at)}</span>
           <span>|</span>
           <span>{article.source}</span>
@@ -82,9 +77,12 @@ export default function NewsArticleCard({
                 <StatusBadge status={market.status} />
               </div>
 
-              <div className="flex items-center gap-3 text-[10px] text-ink-faint font-mono-num">
+              <div className="flex items-center gap-3 text-[10px] text-ink-faint font-mono-num flex-wrap">
                 <span>出来高 {formatPoints(pool.total)}</span>
                 <span>締切 {formatRelativeToNow(market.kickoff_time)}</span>
+                {Number(market.seed_pool) > 0 && (
+                  <span className="text-gold">🎁 初期賞金 {formatPoints(market.seed_pool)}</span>
+                )}
               </div>
 
               {market.status === "open" ? (
@@ -94,6 +92,7 @@ export default function NewsArticleCard({
                     pool={pool}
                     outcomeOptions={market.outcome_options}
                     rakeBps={market.rake_bps}
+                    seedPool={Number(market.seed_pool)}
                     maxAmount={Number(profile.points_balance)}
                     compact
                   />
@@ -125,6 +124,7 @@ export default function NewsArticleCard({
           category={article.category}
           creationCost={creationCost}
           creatorFeePct={creatorFeePct}
+          seedAmount={seedAmount}
           approvalThreshold={approvalThreshold}
           isLoggedIn={!!profile}
           balance={profile ? Number(profile.points_balance) : 0}
