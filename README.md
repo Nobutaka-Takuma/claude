@@ -23,10 +23,8 @@ createdb prediction_market
 # 3. 環境変数を用意（デフォルトのままでOK。スポーツAPI連携はキーなしのモックプロバイダで動きます）
 cp .env.example .env.local
 
-# 4. マイグレーションを適用（0000は本番Supabaseには不要 — 上記の注記を参照）
-for f in supabase/migrations/*.sql; do psql "$DATABASE_URL" -f "$f"; done
-# もしくは:
-for f in supabase/migrations/*.sql; do psql "postgresql://postgres:postgres@127.0.0.1:5432/prediction_market" -f "$f"; done
+# 4. マイグレーションを適用（未適用のものだけが実行されます）
+npm run migrate
 
 # 5. デモ用データを投入（管理者アカウント・タスク・マーケットのseed）
 npm run seed
@@ -46,6 +44,24 @@ http://localhost:3000 を開くとアプリが動きます。
 - パスワード: `admin12345`
 
 一般ユーザーは `/signup` から自由に登録できます。
+
+### 最新版に更新するとき
+
+```bash
+# アプリを停止（Ctrl+C）してから
+git pull origin main
+npm install        # 依存関係が増えていることがあります
+npm run migrate    # 未適用のマイグレーションだけが実行されます
+npm run dev
+```
+
+`npm run migrate` は適用済みのマイグレーションを `schema_migrations` テーブルで記録するので、何度実行しても未適用のものだけが走ります。各ファイルはトランザクション内で実行され、失敗すればロールバックされます。
+
+このスクリプトを導入する前に手でマイグレーションを適用していたデータベースには、どこまで適用済みかを一度だけ教えてください（例: 0006まで適用済みの場合）。
+
+```bash
+npm run migrate -- --baseline 00000000000006
+```
 
 ### 動作確認（スモークテスト）
 
