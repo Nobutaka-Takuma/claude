@@ -8,6 +8,7 @@ import {
   MARKET_CREATOR_FEE_BPS,
   MARKET_SEED_BPS,
   MARKET_APPROVAL_THRESHOLD,
+  MARKET_BAN_THRESHOLD,
 } from "@/lib/config";
 import MarketFormTabs from "@/components/MarketFormTabs";
 import VoteProposalButton from "@/components/VoteProposalButton";
@@ -40,6 +41,7 @@ export default async function ProposeMarketPage() {
           creatorFeePct={creatorFeePct}
           seedAmount={seedAmount}
           approvalThreshold={approvalThreshold}
+          banThreshold={MARKET_BAN_THRESHOLD()}
           balance={Number(profile.points_balance)}
         />
       ) : (

@@ -8,6 +8,8 @@ import {
   getChallengesForMarket,
   getVotesForChallenge,
   getNewsArticleById,
+  getActiveReportCount,
+  hasReportedMarket,
 } from "@/lib/data";
 import { categoryIcon, categoryLabel } from "@/lib/categories";
 import { formatDateTime, formatPoints, formatRelativeToNow } from "@/lib/format";
@@ -26,6 +28,8 @@ import {
   VOTER_RAKE_SHARE_BPS,
   VOTE_FLAT_REWARD,
   VOTE_REWARD_SLOTS,
+  MARKET_BAN_THRESHOLD,
+  REPORT_REWARD,
 } from "@/lib/config";
 import OutcomeBar from "@/components/OutcomeBar";
 import StatusBadge from "@/components/StatusBadge";
@@ -38,6 +42,7 @@ import VoidMarketButton from "@/components/VoidMarketButton";
 import EarlyResolutionForm from "@/components/EarlyResolutionForm";
 import CancelBetButton from "@/components/CancelBetButton";
 import RelatedMarkets from "@/components/RelatedMarkets";
+import ReportMarketButton from "@/components/ReportMarketButton";
 
 export default async function MarketDetailPage({ params }: PageProps<"/markets/[marketId]">) {
   const { marketId } = await params;
@@ -50,6 +55,14 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
   const sourceArticle = market.news_article_id
     ? await getNewsArticleById(market.news_article_id)
     : null;
+
+  const reportCount = await getActiveReportCount(market);
+  const alreadyReported = profile ? await hasReportedMarket(marketId, profile.id) : false;
+  // A market that's already been removed, or that has settled, is past the
+  // point where reporting it changes anything.
+  const reportable =
+    market.banned_at === null &&
+    ["proposed", "open", "locked", "pending_resolution", "disputed"].includes(market.status);
 
   const disputable = market.status === "pending_resolution" || market.status === "disputed";
   const challenges = disputable ? await getChallengesForMarket(marketId) : [];
@@ -78,7 +91,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           <h1 className="text-lg font-extrabold">
             {categoryIcon(market.category)} {marketHeading(market)}
           </h1>
-          <StatusBadge status={market.status} />
+          <StatusBadge status={market.status} banned={market.banned_at !== null} />
         </div>
 
         <div className="flex flex-wrap gap-1.5 mt-2 text-[11px] font-semibold">
@@ -170,6 +183,18 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           的中者には賭けた分が全額戻り、さらに他の選択肢のプールから手数料{(market.rake_bps / 100).toFixed(0)}%を差し引いた分と初期賞金を山分けします。
         </p>
       </section>
+
+      {market.banned_at && (
+        <section className="rounded-xl border border-neg bg-neg/5 p-4 space-y-1">
+          <p className="text-sm font-bold text-neg">🚫 このマーケットは停止されました</p>
+          <p className="text-[11px] text-ink-muted">
+            {market.ban_reason ?? "ガイドライン違反の通報により停止されました。"}
+          </p>
+          <p className="text-[11px] text-ink-muted">
+            予想されたポイントはすべて返金済みです。作成者が支払った作成料は返金されません。
+          </p>
+        </section>
+      )}
 
       {market.status === "resolved" && (
         <section className="rounded-xl border border-line bg-surface-2 p-4 space-y-1">
@@ -363,6 +388,25 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
       )}
 
       <RelatedMarkets market={market} />
+
+      {reportable &&
+        (profile ? (
+          <ReportMarketButton
+            marketId={market.id}
+            threshold={MARKET_BAN_THRESHOLD()}
+            currentCount={reportCount}
+            reward={REPORT_REWARD()}
+            alreadyReported={alreadyReported}
+          />
+        ) : (
+          <p className="text-[11px] text-ink-faint text-center">
+            不適切なマーケットの通報には
+            <Link href="/login" className="text-accent-ink font-semibold mx-1">
+              ログイン
+            </Link>
+            が必要です。
+          </p>
+        ))}
     </div>
   );
 }

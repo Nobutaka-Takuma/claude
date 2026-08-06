@@ -68,3 +68,14 @@ export const VOTE_REWARD_SLOTS = () => intFromEnv("VOTE_REWARD_SLOTS", 10);
 // Cancelling a bet before the market closes costs this much, so it isn't
 // a free option on every swing in the odds.
 export const BET_CANCEL_PENALTY = () => intFromEnv("BET_CANCEL_PENALTY", 3);
+
+// Reports needed to remove a market that violates the guidelines, and
+// what each reporter earns from the creator's forfeited fee.
+//
+// The threshold is the safety-vs-abuse dial: too high and a market that
+// shouldn't exist stays up while people bet on it; too low and a handful
+// of accounts can destroy legitimate markets. Raise it as the user base
+// grows — three is right for a small community where three independent
+// people flagging something is a real signal.
+export const MARKET_BAN_THRESHOLD = () => intFromEnv("MARKET_BAN_THRESHOLD", 3);
+export const REPORT_REWARD = () => intFromEnv("REPORT_REWARD", 3);

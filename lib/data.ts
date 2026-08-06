@@ -336,6 +336,45 @@ export async function getTreasuryBreakdown(): Promise<{ entry_type: string; tota
   return result.rows;
 }
 
+// Reports that still count toward removal. Reports filed before an admin
+// dismissed them are deliberately excluded — they were reviewed and found
+// unfounded, so they must not be able to combine with a later one.
+export async function getActiveReportCount(market: Market): Promise<number> {
+  const result = await query<{ count: string }>(
+    `select count(*) as count from market_reports
+     where market_id = $1 and ($2::timestamptz is null or created_at > $2)`,
+    [market.id, market.reports_dismissed_at]
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+export async function hasReportedMarket(marketId: string, userId: string): Promise<boolean> {
+  const result = await query(
+    "select 1 from market_reports where market_id = $1 and user_id = $2",
+    [marketId, userId]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
+export type ReportedMarket = Market & { report_count: string; categories: string[] };
+
+// The moderation queue: markets with live reports that haven't reached the
+// threshold, so an admin can step in before or instead of the vote.
+export async function getReportedMarkets(): Promise<ReportedMarket[]> {
+  const result = await query<ReportedMarket>(
+    `select m.*,
+            count(r.id) as report_count,
+            array_agg(distinct r.category) as categories
+     from markets m
+     join market_reports r on r.market_id = m.id
+     where m.banned_at is null
+       and (m.reports_dismissed_at is null or r.created_at > m.reports_dismissed_at)
+     group by m.id
+     order by count(r.id) desc, max(r.created_at) desc`
+  );
+  return result.rows;
+}
+
 export async function getChallengesForMarket(marketId: string): Promise<Challenge[]> {
   const result = await query<Challenge>(
     "select * from challenges where market_id = $1 order by created_at desc",

@@ -5,7 +5,13 @@ import MarketForm from "./MarketForm";
 
 // Collapsed by default: the admin page is mostly a work queue, and a
 // full creation form permanently expanded at the top buries it.
-export default function AdminMarketForm({ seedAmount }: { seedAmount: number }) {
+export default function AdminMarketForm({
+  seedAmount,
+  banThreshold,
+}: {
+  seedAmount: number;
+  banThreshold: number;
+}) {
   const [open, setOpen] = useState(false);
 
   if (!open) {
@@ -37,6 +43,7 @@ export default function AdminMarketForm({ seedAmount }: { seedAmount: number }) 
         creatorFeePct={0}
         seedAmount={seedAmount}
         approvalThreshold={0}
+        banThreshold={banThreshold}
         onCreated={() => setOpen(false)}
       />
     </section>

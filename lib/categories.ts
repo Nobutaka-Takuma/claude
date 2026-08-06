@@ -47,8 +47,8 @@ export function categoryIcon(key: string | null | undefined): string {
 }
 
 export function categoryLabel(key: string | null | undefined): string {
-  const def = key ? BY_KEY.get(key) : undefined;
-  // Fall back to the raw value so categories seeded before this list
-  // existed still render as something meaningful.
-  return def ? def.label : (key ?? "その他");
+  // An unrecognised key falls back to "その他" rather than being printed
+  // raw: the keys are English identifiers, and one leaking into the UI is
+  // worse than losing a category name nobody had defined anyway.
+  return (key ? BY_KEY.get(key)?.label : undefined) ?? "その他";
 }

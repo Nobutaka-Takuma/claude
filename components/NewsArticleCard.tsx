@@ -19,6 +19,7 @@ export default function NewsArticleCard({
   creatorFeePct,
   seedAmount,
   approvalThreshold,
+  banThreshold,
 }: {
   article: NewsFeedItem;
   poolsByMarket: Record<string, MarketPool[]>;
@@ -28,6 +29,7 @@ export default function NewsArticleCard({
   creatorFeePct: number;
   seedAmount: number;
   approvalThreshold: number;
+  banThreshold: number;
 }) {
   return (
     <article
@@ -77,7 +79,7 @@ export default function NewsArticleCard({
                 <Link href={`/markets/${market.id}`} className="text-sm font-bold leading-snug hover:underline">
                   {market.title}
                 </Link>
-                <StatusBadge status={market.status} />
+                <StatusBadge status={market.status} banned={market.banned_at !== null} />
               </div>
 
               <div className="flex items-center gap-3 text-[10px] text-ink-faint font-mono-num flex-wrap">
@@ -129,6 +131,7 @@ export default function NewsArticleCard({
           creatorFeePct={creatorFeePct}
           seedAmount={seedAmount}
           approvalThreshold={approvalThreshold}
+          banThreshold={banThreshold}
           isLoggedIn={!!profile}
           balance={profile ? Number(profile.points_balance) : 0}
         />

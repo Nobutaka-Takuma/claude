@@ -11,6 +11,7 @@ export default function CreateMarketFromNews({
   creatorFeePct,
   seedAmount,
   approvalThreshold,
+  banThreshold,
   isLoggedIn,
   balance,
 }: {
@@ -20,6 +21,7 @@ export default function CreateMarketFromNews({
   creatorFeePct: number;
   seedAmount: number;
   approvalThreshold: number;
+  banThreshold: number;
   isLoggedIn: boolean;
   balance: number;
 }) {
@@ -75,6 +77,7 @@ export default function CreateMarketFromNews({
         creatorFeePct={creatorFeePct}
         seedAmount={seedAmount}
         approvalThreshold={approvalThreshold}
+        banThreshold={banThreshold}
         onCreated={() => setOpen(false)}
       />
     </div>

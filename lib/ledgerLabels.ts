@@ -25,6 +25,8 @@ export type LedgerEntryType =
   | "bond_awarded"
   | "vote_reward"
   | "voter_rake_share"
+  | "report_reward"
+  | "market_fee_forfeited"
   | "adjustment";
 
 // What the user sees on their own points history: written from their
@@ -49,6 +51,8 @@ const USER_LABELS: Record<LedgerEntryType, string> = {
   bond_awarded: "🏅 相手の保証金からの受け取り",
   vote_reward: "🗳 判定投票の報酬（先着）",
   voter_rake_share: "🗳 判定投票の報酬（手数料の分配）",
+  report_reward: "🚩 通報の報酬",
+  market_fee_forfeited: "作成料の没収（マーケットが停止されたため）",
   adjustment: "運営による補正",
 };
 
@@ -74,6 +78,8 @@ const TREASURY_LABELS: Record<LedgerEntryType, string> = {
   bond_awarded: "保証金の勝者への引き渡し",
   vote_reward: "判定投票への報酬",
   voter_rake_share: "判定投票者への手数料分配",
+  report_reward: "通報者への報酬",
+  market_fee_forfeited: "停止されたマーケットの作成料を没収",
   adjustment: "補正",
 };
 
@@ -91,6 +97,7 @@ const DIRECTIONAL: Partial<Record<LedgerEntryType, { out: string; back: string }
 const ZERO_DELTA_NOTES: Partial<Record<LedgerEntryType, string>> = {
   resolution_bond_forfeited: "保証金は返却されませんでした（報告が覆されたため）",
   challenge_bond_forfeited: "保証金は返却されませんでした（異議が退けられたため）",
+  market_fee_forfeited: "作成料は返却されませんでした（マーケットが停止されたため）",
 };
 
 function lookup(map: Record<LedgerEntryType, string>, entryType: string): string {

@@ -10,8 +10,19 @@ const LABELS: Record<MarketStatus, { text: string; tone: string }> = {
   cancelled: { text: "中止", tone: "bg-surface-2 text-ink-faint" },
 };
 
-export default function StatusBadge({ status }: { status: MarketStatus }) {
-  const { text, tone } = LABELS[status];
+// `banned` gets its own wording: "中止" reads like the match was called
+// off, which is a very different thing from the market being removed for
+// breaking the rules.
+export default function StatusBadge({
+  status,
+  banned = false,
+}: {
+  status: MarketStatus;
+  banned?: boolean;
+}) {
+  const { text, tone } = banned
+    ? { text: "停止", tone: "bg-neg/10 text-neg" }
+    : LABELS[status];
   return (
     <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${tone}`}>
       {text}

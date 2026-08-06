@@ -28,6 +28,7 @@ export default function MarketForm({
   creatorFeePct,
   seedAmount,
   approvalThreshold,
+  banThreshold,
   onCreated,
 }: {
   mode: MarketFormMode;
@@ -38,6 +39,7 @@ export default function MarketForm({
   creatorFeePct: number;
   seedAmount: number;
   approvalThreshold: number;
+  banThreshold: number;
   onCreated?: () => void;
 }) {
   const router = useRouter();
@@ -330,6 +332,14 @@ export default function MarketForm({
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
       </label>
+
+      <p className="text-[11px] text-ink-faint rounded-lg border border-line bg-surface-2 px-3 py-2">
+        特定の人の死傷・私人のプライバシー・差別的な内容などは作成できません。通報が
+        {" "}{banThreshold}件集まったマーケットは停止され、作成料は返金されません。{" "}
+        <a href="/guidelines" target="_blank" rel="noopener noreferrer" className="text-accent-ink font-semibold underline">
+          ガイドライン
+        </a>
+      </p>
 
       {error && <p className="text-xs text-neg">{error}</p>}
 

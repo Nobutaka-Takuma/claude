@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentProfile } from "@/lib/auth";
 import { createMarket } from "@/lib/rpc";
 import { rpcErrorResponse } from "@/lib/apiError";
+import { checkMarketContent } from "@/lib/contentPolicy";
 import {
   ADMIN_MARKET_SEED,
   MARKET_CREATION_COST,
@@ -74,6 +75,16 @@ export async function POST(req: Request) {
       ),
     ];
     return NextResponse.json({ error: "invalid_input", fields }, { status: 400 });
+  }
+
+  // Refused outright rather than left to the report vote: for these
+  // subjects the market being publicly live at all is the harm.
+  const violation = checkMarketContent(parsed.data.title, parsed.data.description);
+  if (violation) {
+    return NextResponse.json(
+      { error: "prohibited_content", detail: violation.message },
+      { status: 422 }
+    );
   }
 
   const asAdmin = parsed.data.asAdmin === true;

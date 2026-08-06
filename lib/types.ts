@@ -89,6 +89,20 @@ export interface Market {
   // Link backing the reported result, so the dispute window is usable by
   // someone who wasn't watching.
   resolution_evidence_url: string | null;
+  // Set when the community removed this market for violating the
+  // guidelines, as opposed to an ordinary cancellation.
+  banned_at: string | null;
+  ban_reason: string | null;
+  reports_dismissed_at: string | null;
+}
+
+export interface MarketReport {
+  id: string;
+  market_id: string;
+  user_id: string;
+  category: string;
+  note: string | null;
+  created_at: string;
 }
 
 export interface NewsArticle {

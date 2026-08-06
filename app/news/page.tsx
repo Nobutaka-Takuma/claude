@@ -5,6 +5,7 @@ import {
   MARKET_CREATOR_FEE_BPS,
   MARKET_SEED_BPS,
   MARKET_APPROVAL_THRESHOLD,
+  MARKET_BAN_THRESHOLD,
 } from "@/lib/config";
 import NewsArticleCard from "@/components/NewsArticleCard";
 import RefreshNewsButton from "@/components/RefreshNewsButton";
@@ -56,6 +57,7 @@ export default async function NewsPage() {
               creatorFeePct={creatorFeePct}
           seedAmount={seedAmount}
               approvalThreshold={approvalThreshold}
+              banThreshold={MARKET_BAN_THRESHOLD()}
             />
           ))}
         </div>

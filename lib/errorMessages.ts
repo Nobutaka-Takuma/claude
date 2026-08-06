@@ -34,7 +34,13 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   resolves_at_required: "結果判定の予定日時を入力してください。",
   evidence_required: "結果の証跡URLを入力してください。",
   invalid_evidence_url: "証跡URLは http:// または https:// で始まる形式で入力してください。",
-  insufficient_treasury: "金庫（Treasury）の残高が不足しているため、初期賞金を用意できません。",
+  insufficient_treasury: "コミュニティ金庫の残高が不足しているため、初期賞金を用意できません。",
+  already_reported: "このマーケットは既に通報済みです。",
+  cannot_report_own_market: "自分が作成したマーケットは通報できません。",
+  market_not_bannable: "このマーケットは既に確定・停止しているため通報できません。",
+  // prohibited_content is intentionally unmapped: the API sends the
+  // specific rule that was hit as `detail`, and generic copy would hide
+  // which one — leaving the creator to guess what to change.
   invalid_dispute_window: "異議申し立て期間の指定が不正です。",
   article_not_found_create: "元にするニュース記事が見つかりません。",
   market_not_open_for_voting: "このマーケットは賛成投票を受け付けていません。",
@@ -71,6 +77,7 @@ export const FIELD_ERROR_MESSAGES: Record<string, string> = {
   league: "大会・リーグ名は60文字以内で入力してください。",
   description: "補足説明は2000文字以内で入力してください。",
   category: "カテゴリの指定が不正です。",
+  note: "補足は500文字以内で入力してください。",
   newsArticleId: "紐付けるニュース記事の指定が不正です。",
   marketKind: "お題の種類を選び直してください。",
   outcome: "選択肢が正しく選ばれていません。",

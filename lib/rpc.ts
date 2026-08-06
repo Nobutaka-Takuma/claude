@@ -247,6 +247,39 @@ export async function finalizeExpiredMarkets(bondAwardBps: number, resolutionRew
   await query("select finalize_expired_markets($1, $2)", [bondAwardBps, resolutionReward]);
 }
 
+// Community takedown: a report that reaches the threshold performs the
+// removal in the same transaction, so the returned market already carries
+// its banned state.
+export function reportMarket(
+  userId: string,
+  marketId: string,
+  category: string,
+  note: string | null,
+  threshold: number,
+  rewardPerReporter: number
+) {
+  return callRpc<Market>("select * from report_market($1, $2, $3, $4, $5, $6)", [
+    userId,
+    marketId,
+    category,
+    note,
+    threshold,
+    rewardPerReporter,
+  ]);
+}
+
+export function banMarket(marketId: string, reason: string | null, rewardPerReporter: number) {
+  return callRpc<Market>("select * from ban_market($1, $2, $3)", [
+    marketId,
+    reason,
+    rewardPerReporter,
+  ]);
+}
+
+export function dismissMarketReports(marketId: string) {
+  return callRpc<Market>("select * from dismiss_market_reports($1)", [marketId]);
+}
+
 export function rpcErrorStatus(message: string): number {
   // The request was fine; the deployment is behind. 503 rather than 4xx so
   // it doesn't read as the user's mistake.

@@ -25,7 +25,7 @@ export default function MarketCard({ market, pools }: { market: Market; pools: M
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-sm font-bold leading-snug">{marketHeading(market)}</h3>
-            <StatusBadge status={market.status} />
+            <StatusBadge status={market.status} banned={market.banned_at !== null} />
           </div>
 
           {(market.league || market.matchweek !== null) && (

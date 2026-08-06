@@ -8,12 +8,14 @@ export default function MarketFormTabs({
   creatorFeePct,
   seedAmount,
   approvalThreshold,
+  banThreshold,
   balance,
 }: {
   creationCost: number;
   creatorFeePct: number;
   seedAmount: number;
   approvalThreshold: number;
+  banThreshold: number;
   balance: number;
 }) {
   const [mode, setMode] = useState<MarketFormMode>("paid");
@@ -60,6 +62,7 @@ export default function MarketFormTabs({
         creatorFeePct={creatorFeePct}
         seedAmount={seedAmount}
         approvalThreshold={approvalThreshold}
+        banThreshold={banThreshold}
       />
     </div>
   );
