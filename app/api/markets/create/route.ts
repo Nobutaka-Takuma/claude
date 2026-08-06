@@ -44,7 +44,16 @@ export async function POST(req: Request) {
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+    // Surface which fields failed so the form can say what to fix rather
+    // than just "invalid".
+    const fields = [
+      ...new Set(
+        parsed.error.issues.flatMap((i) =>
+          i.path.length > 0 ? [String(i.path[0])] : (i.message ? [i.message] : [])
+        )
+      ),
+    ];
+    return NextResponse.json({ error: "invalid_input", fields }, { status: 400 });
   }
 
   try {

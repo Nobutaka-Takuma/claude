@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
-import { getActiveTasks, getUserVerifiedCompletionCounts } from "@/lib/data";
+import { getActiveTasks, getUserVerifiedCompletionCounts, getOpenVotingTasks } from "@/lib/data";
+import { VOTE_FLAT_REWARD, VOTE_REWARD_SLOTS, VOTER_RAKE_SHARE_BPS } from "@/lib/config";
+import { marketHeading } from "@/lib/outcome";
+import { formatRelativeToNow } from "@/lib/format";
 import { formatPoints } from "@/lib/format";
 import AdTaskButton from "@/components/AdTaskButton";
 import SurveyTaskCard from "@/components/SurveyTaskCard";
@@ -9,6 +12,7 @@ export default async function TasksPage() {
   const profile = await getCurrentProfile();
   const tasks = await getActiveTasks();
   const completionCounts = profile ? await getUserVerifiedCompletionCounts(profile.id) : {};
+  const votingTasks = profile ? await getOpenVotingTasks(profile.id, VOTE_REWARD_SLOTS()) : [];
 
   if (!profile) {
     return (
@@ -31,6 +35,33 @@ export default async function TasksPage() {
       <p className="text-xs text-ink-faint">
         完了すると自動でポイントが付与され、同時に金庫(Treasury)にも積み立てられます。
       </p>
+
+      {votingTasks.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold">🗳 結果確定の投票</h2>
+          <p className="text-[11px] text-ink-faint">
+            正解の選択肢に投票すると先着{VOTE_REWARD_SLOTS()}名に{VOTE_FLAT_REWARD()}pt、
+            さらに正解者全員でテラ銭の{VOTER_RAKE_SHARE_BPS() / 100}%を按分して受け取れます。
+          </p>
+          {votingTasks.map((t) => (
+            <Link
+              key={t.challenge_id}
+              href={`/markets/${t.id}`}
+              className="block rounded-xl border border-gold/50 bg-gold-soft p-4 space-y-1 hover:border-gold"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{marketHeading(t)}</span>
+                <span className="font-mono-num text-xs font-bold text-gold">
+                  +{VOTE_FLAT_REWARD()}pt
+                </span>
+              </div>
+              <p className="text-[11px] text-ink-muted">
+                現在 {t.vote_count} 票 ・ 締切 {formatRelativeToNow(t.voting_deadline)}
+              </p>
+            </Link>
+          ))}
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold">🎬 広告視聴</h2>

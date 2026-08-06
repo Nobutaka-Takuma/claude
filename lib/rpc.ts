@@ -1,6 +1,6 @@
 import type { QueryResultRow } from "pg";
 import { query } from "./db";
-import type { Bet, Market, TreasuryLog } from "./types";
+import type { Bet, Challenge, Market, TreasuryLog } from "./types";
 
 // Postgres surfaces `raise exception 'foo'` as error.message === 'foo', so
 // these RPC wrappers just forward that text — route handlers map it to an
@@ -155,6 +155,47 @@ export function submitProvisionalResult(
   ]);
 }
 
+export function cancelBet(userId: string, betId: string, penalty: number) {
+  return callRpc<Bet>("select * from cancel_bet($1, $2, $3)", [userId, betId, penalty]);
+}
+
+// Freezes betting on a market whose result is already known and puts the
+// proposed outcome straight to a short DAO vote, skipping the optimistic
+// window (the whole point is that this can't wait for kickoff).
+export function requestEarlyResolution(
+  userId: string,
+  marketId: string,
+  outcome: string,
+  bond: number,
+  votingHours: number
+) {
+  return callRpc<Challenge>("select * from request_early_resolution($1, $2, $3, $4, $5)", [
+    userId,
+    marketId,
+    outcome,
+    bond,
+    votingHours,
+  ]);
+}
+
+export function raiseChallenge(
+  userId: string,
+  marketId: string,
+  reason: string,
+  evidenceUrl: string | null,
+  bond: number,
+  votingHours: number
+) {
+  return callRpc<Challenge>("select * from raise_challenge($1, $2, $3, $4, $5, $6)", [
+    userId,
+    marketId,
+    reason,
+    evidenceUrl,
+    bond,
+    votingHours,
+  ]);
+}
+
 export async function syncMarketStatus() {
   await query("select sync_market_status()");
 }
@@ -169,6 +210,9 @@ export async function finalizeExpiredMarkets() {
 export function rpcErrorStatus(message: string): number {
   if (
     message.includes("insufficient") ||
+    message.includes("already_bet_other_outcome") ||
+    message.includes("already_challenged") ||
+    message.includes("bet_not_active") ||
     message.includes("invalid_outcome_options") ||
     message.includes("invalid_outcome_key") ||
     message.includes("not_open") ||

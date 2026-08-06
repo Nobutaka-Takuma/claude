@@ -3,7 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function RaiseChallengeForm({ marketId }: { marketId: string }) {
+export default function RaiseChallengeForm({
+  marketId,
+  bond,
+  votingHours,
+  awardPct,
+  balance,
+}: {
+  marketId: string;
+  bond: number;
+  votingHours: number;
+  awardPct: number;
+  balance: number;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -16,9 +28,10 @@ export default function RaiseChallengeForm({ marketId }: { marketId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full text-xs font-semibold text-neg border border-neg rounded-lg px-3 py-2"
+        disabled={balance < bond}
+        className="w-full text-xs font-semibold text-neg border border-neg rounded-lg px-3 py-2 disabled:opacity-50"
       >
-        異議を申し立てる
+        異議を申し立てる（保証金 {bond}pt）
       </button>
     );
   }
@@ -44,6 +57,11 @@ export default function RaiseChallengeForm({ marketId }: { marketId: string }) {
 
   return (
     <form onSubmit={submit} className="space-y-2 border border-neg/40 rounded-lg p-3">
+      <p className="text-[11px] text-ink-muted">
+        保証金 <span className="font-mono-num font-bold">{bond}pt</span> を預けて異議を申し立てます。
+        {votingHours}時間のDAO投票で決着し、あなたの主張が支持されれば保証金は返却され、さらに提案者の
+        保証金の{awardPct}%を受け取れます。支持されなかった場合、あなたの保証金は没収されます。
+      </p>
       <label className="block space-y-1">
         <span className="text-xs text-ink-muted">異議の理由</span>
         <textarea

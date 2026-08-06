@@ -7,6 +7,7 @@ import {
   MARKET_APPROVAL_THRESHOLD,
 } from "@/lib/config";
 import NewsArticleCard from "@/components/NewsArticleCard";
+import RefreshNewsButton from "@/components/RefreshNewsButton";
 import type { MarketPool } from "@/lib/types";
 
 export default async function NewsPage() {
@@ -28,7 +29,10 @@ export default async function NewsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-lg font-extrabold">ニュースから予測する</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-lg font-extrabold">ニュースから予測する</h1>
+          {profile?.role === "admin" && <RefreshNewsButton />}
+        </div>
         <p className="text-xs text-ink-faint mt-1">
           ニュースを読んで、その場で予想に参加。気になる論点があればあなたがマーケットを作れます（{creationCost}pt）。
           あなたのマーケットが盛り上がるほど、テラ銭の{creatorFeePct}%が報酬として入ります。

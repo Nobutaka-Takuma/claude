@@ -22,7 +22,41 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   already_voted: "既に投票済みです。",
   limit_reached: "上限に達しています。",
   duplicate_completion: "既に完了済みです。",
+  already_bet_other_outcome:
+    "このマーケットでは既に別の選択肢にベットしています。同じ選択肢への追加ベットはできますが、別の選択肢に賭けるには先に既存のベットを取り消してください。",
+  already_challenged: "このマーケットには既に異議が申し立てられ、DAO投票中です。",
+  bet_not_found: "ベットが見つかりません。",
+  bet_not_active: "このベットは既に精算済みまたは取消済みです。",
+  market_not_disputable: "このマーケットは現在異議を申し立てられる状態ではありません。",
+  market_not_awaiting_result: "このマーケットはまだ結果を提案できる状態ではありません。",
+  market_not_settleable: "このマーケットは既に確定しています。",
+  resolves_at_before_close: "結果判定の予定日時は、ベット締切より後にしてください。",
+  invalid_dispute_window: "異議申し立て期間の指定が不正です。",
+  article_not_found_create: "元にするニュース記事が見つかりません。",
 };
+
+// Zod rejects the whole body with one code, which tells the user nothing
+// about which field is wrong. These map the API's field-level detail to
+// something actionable.
+export const FIELD_ERROR_MESSAGES: Record<string, string> = {
+  title: "質問文は3文字以上120文字以内で入力してください。",
+  closesAt: "ベット締切日時を入力してください。",
+  kickoffTime: "ベット締切日時を入力してください。",
+  resolvesAt: "結果判定の予定日時の形式が不正です。",
+  homeTeam: "ホームチーム名を入力してください。",
+  awayTeam: "アウェイチーム名を入力してください。",
+  outcomeOptions: "選択肢は2〜8個、それぞれ空欄でなく入力してください。",
+  matchweek: "第何節は1〜99の数字で入力してください。",
+  league: "大会・リーグ名は60文字以内で入力してください。",
+  description: "補足説明は2000文字以内で入力してください。",
+  category: "カテゴリの指定が不正です。",
+};
+
+export function fieldErrorMessage(fields: string[] | undefined): string | null {
+  if (!fields || fields.length === 0) return null;
+  const messages = fields.map((f) => FIELD_ERROR_MESSAGES[f]).filter(Boolean);
+  return messages.length > 0 ? messages.join(" ") : null;
+}
 
 export function apiErrorMessage(code: string | undefined, fallback: string): string {
   if (!code) return fallback;

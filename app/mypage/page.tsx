@@ -3,6 +3,8 @@ import { getCurrentProfile } from "@/lib/auth";
 import { getUserBets, getUserTreasuryLogs } from "@/lib/data";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
+import { BET_CANCEL_PENALTY } from "@/lib/config";
+import CancelBetButton from "@/components/CancelBetButton";
 
 const ENTRY_LABELS: Record<string, string> = {
   task_reward: "タスク完了報酬",
@@ -13,6 +15,14 @@ const ENTRY_LABELS: Record<string, string> = {
   signup_bonus: "🎁 新規登録ボーナス",
   market_creation_fee: "マーケット作成",
   creator_fee: "💰 マーケット作成者報酬",
+  bet_cancelled: "ベット取消（返金）",
+  resolution_bond: "判定の保証金",
+  resolution_bond_forfeited: "保証金の没収",
+  challenge_bond: "異議申立の保証金",
+  challenge_bond_forfeited: "保証金の没収",
+  bond_awarded: "🏅 保証金からの受取",
+  vote_reward: "🗳 投票報酬（先着）",
+  voter_rake_share: "🗳 投票報酬（テラ銭按分）",
   adjustment: "補正",
 };
 
@@ -65,21 +75,33 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
         ) : (
           <ul className="space-y-2">
             {bets.map((b) => (
-              <li key={b.id}>
+              <li key={b.id} className="rounded-xl border border-line bg-surface p-3 space-y-1">
                 <Link
                   href={`/markets/${b.market_id}`}
-                  className="flex items-center justify-between rounded-xl border border-line bg-surface p-3 text-sm hover:border-line-strong"
+                  className="flex items-start justify-between gap-2 text-sm hover:underline"
                 >
                   <span>
                     {marketHeading(b)} ・ {outcomeLabel(b.outcome_options, b.outcome)}に {formatPoints(b.amount)}
                   </span>
-                  <span className="font-mono-num font-semibold">
+                  <span className="font-mono-num font-semibold whitespace-nowrap">
                     {b.status === "active" && "結果待ち"}
                     {b.status === "won" && <span className="text-accent-ink">的中 +{formatPoints(b.payout_amount)}</span>}
                     {b.status === "lost" && <span className="text-ink-faint">不的中</span>}
                     {b.status === "refunded" && <span className="text-ink-faint">返金済み</span>}
+                    {b.status === "void" && <span className="text-ink-faint">取消済み</span>}
                   </span>
                 </Link>
+                <p className="text-[11px] text-ink-faint">
+                  ベット締切 {formatDateTime(b.kickoff_time)} ・ 結果判定予定{" "}
+                  {b.resolves_at ? formatDateTime(b.resolves_at) : "未設定"}
+                </p>
+                {b.status === "active" && b.status_market === "open" && (
+                  <CancelBetButton
+                    betId={b.id}
+                    amount={Number(b.amount)}
+                    penalty={BET_CANCEL_PENALTY()}
+                  />
+                )}
               </li>
             ))}
           </ul>

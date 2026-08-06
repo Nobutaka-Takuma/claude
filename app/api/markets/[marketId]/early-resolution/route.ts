@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
-import { raiseChallenge, rpcErrorStatus, RpcError } from "@/lib/rpc";
-import { CHALLENGE_BOND, CHALLENGE_VOTING_HOURS } from "@/lib/config";
+import { requestEarlyResolution, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { EARLY_RESOLUTION_BOND, EARLY_RESOLUTION_VOTING_HOURS } from "@/lib/config";
 
-// POST /api/markets/:marketId/challenge
+// POST /api/markets/:marketId/early-resolution
 //
-// Contest a proposed result. Costs the same bond the proposer posted:
-// returned if the DAO agrees with you, forfeited (mostly to the proposer)
-// if it doesn't. Without that symmetry, disputing would be a free way to
-// stall every settlement.
+// The result is already known but the betting deadline hasn't arrived.
+// Paying a bond freezes the market at once and puts the outcome to a
+// short DAO vote — there's no 24h optimistic window here because the
+// market would otherwise keep taking bets on a settled question.
 const bodySchema = z.object({
-  reason: z.string().min(5).max(1000),
-  evidenceUrl: z.string().url().optional().or(z.literal("")),
+  outcome: z.string().min(1).max(40),
 });
 
-export async function POST(req: Request, ctx: RouteContext<"/api/markets/[marketId]/challenge">) {
+export async function POST(req: Request, ctx: RouteContext<"/api/markets/[marketId]/early-resolution">) {
   const userId = await getSessionUserId();
   if (!userId) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -28,13 +27,12 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
   }
 
   try {
-    const challenge = await raiseChallenge(
+    const challenge = await requestEarlyResolution(
       userId,
       marketId,
-      parsed.data.reason,
-      parsed.data.evidenceUrl || null,
-      CHALLENGE_BOND(),
-      CHALLENGE_VOTING_HOURS()
+      parsed.data.outcome,
+      EARLY_RESOLUTION_BOND(),
+      EARLY_RESOLUTION_VOTING_HOURS()
     );
     return NextResponse.json({ ok: true, challenge });
   } catch (err) {

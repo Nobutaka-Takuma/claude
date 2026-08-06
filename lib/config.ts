@@ -32,3 +32,27 @@ export const RESOLUTION_BOND = () => intFromEnv("RESOLUTION_BOND", 100);
 
 // How long the community has to dispute a proposed result.
 export const DISPUTE_WINDOW_MINUTES = () => intFromEnv("DISPUTE_WINDOW_MINUTES", 1440);
+
+// Filing a dispute costs the same as proposing, so contesting a result
+// is a claim you back rather than a free way to stall a settlement.
+export const CHALLENGE_BOND = () => intFromEnv("CHALLENGE_BOND", 100);
+export const CHALLENGE_VOTING_HOURS = () => intFromEnv("CHALLENGE_VOTING_HOURS", 24);
+
+// When a result is already known before betting closes, anyone can pay a
+// bond to freeze the market and put the outcome to a short vote.
+export const EARLY_RESOLUTION_BOND = () => intFromEnv("EARLY_RESOLUTION_BOND", 100);
+export const EARLY_RESOLUTION_VOTING_HOURS = () => intFromEnv("EARLY_RESOLUTION_VOTING_HOURS", 3);
+
+// Share of the loser's forfeited bond handed to whoever was right; the
+// remainder stays with the treasury.
+export const BOND_AWARD_BPS = () => intFromEnv("BOND_AWARD_BPS", 7000);
+
+// Voting rewards: correct voters split this share of the rake, and the
+// first N of them also get a flat bonus.
+export const VOTER_RAKE_SHARE_BPS = () => intFromEnv("VOTER_RAKE_SHARE_BPS", 5000);
+export const VOTE_FLAT_REWARD = () => intFromEnv("VOTE_FLAT_REWARD", 3);
+export const VOTE_REWARD_SLOTS = () => intFromEnv("VOTE_REWARD_SLOTS", 10);
+
+// Cancelling a bet before the market closes costs this much, so it isn't
+// a free option on every swing in the odds.
+export const BET_CANCEL_PENALTY = () => intFromEnv("BET_CANCEL_PENALTY", 3);

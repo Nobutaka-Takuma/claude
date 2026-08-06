@@ -127,6 +127,64 @@ export async function searchMarkets(filters: MarketSearchFilters): Promise<Marke
   return result.rows;
 }
 
+export type VotingTask = Market & { challenge_id: string; vote_count: string; voting_deadline: string };
+
+// Resolution votes that still need voters, surfaced in the task centre.
+//
+// The reward goes to the first N *correct* voters, which nobody can know
+// while the vote is running — so the listing threshold is total votes
+// cast. Once enough people have weighed in, the vote stops being
+// advertised as a task even though it's still open.
+export async function getOpenVotingTasks(
+  userId: string | null,
+  voteThreshold: number
+): Promise<VotingTask[]> {
+  await tickMarketLifecycle();
+  const result = await query<VotingTask>(
+    `select m.*, c.id as challenge_id, c.voting_deadline,
+            (select count(*) from votes v where v.challenge_id = c.id) as vote_count
+     from challenges c
+     join markets m on m.id = c.market_id
+     where c.status = 'open'
+       and c.voting_deadline > now()
+       and (select count(*) from votes v where v.challenge_id = c.id) < $2
+       and ($1::uuid is null or not exists (
+         select 1 from votes v where v.challenge_id = c.id and v.user_id = $1
+       ))
+     order by c.voting_deadline asc`,
+    [userId, voteThreshold]
+  );
+  return result.rows;
+}
+
+// Markets a bettor on this one is likely to also care about, ranked by
+// how closely they relate: same news story first (they're literally about
+// the same event), then same league round, then same league, then same
+// category. Only open markets, since the point is to offer another bet.
+export async function getRelatedMarkets(market: Market, limit = 4): Promise<Market[]> {
+  const result = await query<Market>(
+    `select *,
+       case
+         when $2::uuid is not null and news_article_id = $2 then 0
+         when $3::text is not null and league = $3 and matchweek is not distinct from $4 then 1
+         when $3::text is not null and league = $3 then 2
+         else 3
+       end as relevance
+     from markets
+     where id <> $1
+       and status = 'open'
+       and (
+         ($2::uuid is not null and news_article_id = $2)
+         or ($3::text is not null and league = $3)
+         or category = $5
+       )
+     order by relevance, kickoff_time asc
+     limit $6`,
+    [market.id, market.news_article_id, market.league, market.matchweek, market.category, limit]
+  );
+  return result.rows;
+}
+
 // Distinct league/matchweek pairs actually present, for the filter chips.
 export async function getLeagueFacets(
   statuses: string[]
@@ -181,12 +239,14 @@ export type BetWithMarket = Bet & {
   status_market: string;
   market_kind: Market["market_kind"];
   outcome_options: Market["outcome_options"];
+  resolves_at: string | null;
+  kickoff_time: string;
 };
 
 export async function getUserBets(userId: string): Promise<BetWithMarket[]> {
   const result = await query<BetWithMarket>(
     `select b.*, m.title, m.home_team, m.away_team, m.status as status_market,
-            m.market_kind, m.outcome_options
+            m.market_kind, m.outcome_options, m.resolves_at, m.kickoff_time
      from bets b join markets m on m.id = b.market_id
      where b.user_id = $1
      order by b.placed_at desc

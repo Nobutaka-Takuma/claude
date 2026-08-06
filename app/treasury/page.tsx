@@ -8,6 +8,13 @@ const ENTRY_LABELS: Record<string, string> = {
   creator_fee: "マーケット作成者への分配（支出）",
   signup_bonus: "新規登録ボーナス（支出）",
   treasury_grant: "運営付与（支出）",
+  market_seed_payout: "初期賞金の払い出し（支出）",
+  resolution_bond: "判定の保証金",
+  challenge_bond: "異議申立の保証金",
+  bond_awarded: "保証金の受取（支出）",
+  vote_reward: "投票報酬（支出）",
+  voter_rake_share: "投票者へのテラ銭按分（支出）",
+  bet_cancelled: "ベット取消ペナルティ",
   adjustment: "補正",
 };
 

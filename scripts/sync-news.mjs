@@ -3,91 +3,62 @@
 //
 // Idempotent: each item is upserted on its feed guid/link, so running
 // this on a schedule refreshes existing articles instead of duplicating
-// them. One dead feed doesn't stop the others — each is reported
+// them. One dead feed doesn't stop the others - each is reported
 // separately so a retired URL is visible rather than silent.
 //
 // Run with: npm run sync-news
+//           npm run sync-news -- --watch        (repeat forever)
+//           npm run sync-news -- --watch 15     (every 15 minutes)
 import pg from "pg";
-import { getFeeds } from "./news-sources/feeds.mjs";
-import { fetchFeed } from "./news-sources/rssParser.mjs";
+import { syncNews } from "./news-sources/syncNews.mjs";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-const PER_FEED_LIMIT = Number(process.env.NEWS_SYNC_PER_FEED_LIMIT ?? 10);
-const MAX_AGE_DAYS = Number(process.env.NEWS_SYNC_MAX_AGE_DAYS ?? 3);
 
-async function main() {
-  const feeds = getFeeds();
-  console.log(`Syncing ${feeds.length} feed(s)...`);
+function parseWatchMinutes(argv) {
+  const i = argv.indexOf("--watch");
+  if (i === -1) return null;
+  const next = argv[i + 1];
+  const minutes = next && !next.startsWith("--") ? Number(next) : NaN;
+  return Number.isFinite(minutes) && minutes > 0
+    ? minutes
+    : Number(process.env.NEWS_SYNC_INTERVAL_MINUTES ?? 30);
+}
 
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
-  let failedFeeds = 0;
-
-  for (const feed of feeds) {
-    let items;
-    try {
-      items = await fetchFeed(feed.url);
-    } catch (err) {
-      failedFeeds++;
-      console.warn(`  ✗ ${feed.url}\n      ${err.message}`);
-      continue;
-    }
-
-    const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
-    let feedCreated = 0;
-    let feedUpdated = 0;
-
-    for (const item of items.slice(0, PER_FEED_LIMIT)) {
-      if (!item.externalRef || !item.title) {
-        skipped++;
-        continue;
-      }
-      if (item.publishedAt && item.publishedAt.getTime() < cutoff) {
-        skipped++;
-        continue;
-      }
-
-      const existed = await pool.query("select 1 from news_articles where external_ref = $1", [
-        item.externalRef,
-      ]);
-
-      await pool.query("select * from upsert_news_article($1, $2, $3, $4, $5, $6, $7)", [
-        item.externalRef,
-        item.title,
-        // Headline-only feeds are common; falling back to the title keeps
-        // news_articles.body's NOT NULL satisfied without inventing text.
-        item.body || item.title,
-        feed.source,
-        feed.category,
-        item.url || null,
-        (item.publishedAt ?? new Date()).toISOString(),
-      ]);
-
-      if (existed.rowCount > 0) {
-        feedUpdated++;
-        updated++;
-      } else {
-        feedCreated++;
-        created++;
-      }
-    }
-
-    console.log(`  ✓ ${feed.url} (${feed.category}) — new ${feedCreated}, updated ${feedUpdated}`);
-  }
-
+async function runOnce() {
+  const result = await syncNews(pool, { log: (line) => console.log(line) });
   console.log(
-    `Done. ${created} new article(s), ${updated} updated, ${skipped} skipped ` +
-      `(older than ${MAX_AGE_DAYS} days or missing a title/id).`
+    `Done. ${result.created} new article(s), ${result.updated} updated, ${result.skipped} skipped.`
   );
-  if (failedFeeds > 0) {
+  if (result.failedFeeds.length > 0) {
     console.warn(
-      `${failedFeeds} feed(s) failed. Publishers retire feed URLs regularly — verify the URL in ` +
-        "scripts/news-sources/feeds.mjs, or override the whole list with the NEWS_FEEDS env var."
+      `${result.failedFeeds.length} feed(s) failed. Publishers retire feed URLs regularly - verify the ` +
+        "URL in scripts/news-sources/feeds.mjs, or override the whole list with the NEWS_FEEDS env var."
     );
   }
+}
 
-  await pool.end();
+async function main() {
+  const watchMinutes = parseWatchMinutes(process.argv.slice(2));
+
+  if (watchMinutes === null) {
+    await runOnce();
+    await pool.end();
+    return;
+  }
+
+  console.log(`Watching: syncing every ${watchMinutes} minute(s). Ctrl+C to stop.`);
+  // Deliberately sequential rather than setInterval: a slow sync should
+  // delay the next run, not stack up overlapping ones against the same
+  // feeds and database.
+  for (;;) {
+    console.log(`\n[${new Date().toLocaleTimeString("ja-JP")}] syncing...`);
+    try {
+      await runOnce();
+    } catch (err) {
+      console.error("sync failed, will retry next interval:", err.message ?? err);
+    }
+    await new Promise((r) => setTimeout(r, watchMinutes * 60 * 1000));
+  }
 }
 
 main().catch((err) => {

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
+import { apiErrorMessage, isAuthError, fieldErrorMessage } from "@/lib/errorMessages";
 import { CATEGORIES, categoryDef } from "@/lib/categories";
 
 export type MarketKind = "match_winner" | "binary" | "multi_outcome";
@@ -118,7 +118,10 @@ export default function MarketForm({
         router.push("/login");
         return;
       }
-      setError(apiErrorMessage(body.error, "マーケットを作成できませんでした。"));
+      setError(
+        fieldErrorMessage(body.fields) ??
+          apiErrorMessage(body.error, "マーケットを作成できませんでした。")
+      );
       setSubmitting(false);
       return;
     }

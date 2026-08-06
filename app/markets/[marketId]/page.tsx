@@ -13,7 +13,19 @@ import { categoryIcon, categoryLabel } from "@/lib/categories";
 import { formatDateTime, formatPoints, formatRelativeToNow } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
-import { RESOLUTION_BOND, DISPUTE_WINDOW_MINUTES } from "@/lib/config";
+import {
+  RESOLUTION_BOND,
+  DISPUTE_WINDOW_MINUTES,
+  CHALLENGE_BOND,
+  CHALLENGE_VOTING_HOURS,
+  EARLY_RESOLUTION_BOND,
+  EARLY_RESOLUTION_VOTING_HOURS,
+  BOND_AWARD_BPS,
+  BET_CANCEL_PENALTY,
+  VOTER_RAKE_SHARE_BPS,
+  VOTE_FLAT_REWARD,
+  VOTE_REWARD_SLOTS,
+} from "@/lib/config";
 import OutcomeBar from "@/components/OutcomeBar";
 import StatusBadge from "@/components/StatusBadge";
 import BetForm from "@/components/BetForm";
@@ -22,6 +34,9 @@ import ChallengeVoteButtons from "@/components/ChallengeVoteButtons";
 import AdminResolveForm from "@/components/AdminResolveForm";
 import SubmitResultForm from "@/components/SubmitResultForm";
 import VoidMarketButton from "@/components/VoidMarketButton";
+import EarlyResolutionForm from "@/components/EarlyResolutionForm";
+import CancelBetButton from "@/components/CancelBetButton";
+import RelatedMarkets from "@/components/RelatedMarkets";
 
 export default async function MarketDetailPage({ params }: PageProps<"/markets/[marketId]">) {
   const { marketId } = await params;
@@ -200,7 +215,20 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
               してください。
             </p>
           )}
-          <p className="text-[11px] text-neg">⚠ キックオフ後は自動的にベット不可になります</p>
+          <p className="text-[11px] text-neg">
+            ⚠ 締切後は自動的にベット不可になります。ひとつのマーケットでは1つの選択肢にのみベットできます。
+          </p>
+          {profile && (
+            <div className="pt-2 border-t border-line">
+              <EarlyResolutionForm
+                marketId={market.id}
+                outcomeOptions={market.outcome_options}
+                bond={EARLY_RESOLUTION_BOND()}
+                votingHours={EARLY_RESOLUTION_VOTING_HOURS()}
+                balance={Number(profile.points_balance)}
+              />
+            </div>
+          )}
           {profile?.role === "admin" && (
             <div className="pt-2 border-t border-line">
               <VoidMarketButton marketId={market.id} />
@@ -212,28 +240,50 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
       {myBets.length > 0 && (
         <section className="rounded-xl border border-line bg-surface p-4 space-y-2">
           <h2 className="text-sm font-bold">自分のベット</h2>
-          <ul className="space-y-1 text-sm">
+          <ul className="space-y-2 text-sm">
             {myBets.map((b) => (
-              <li key={b.id} className="flex justify-between">
-                <span>
-                  {outcomeLabel(market.outcome_options, b.outcome)} に {formatPoints(b.amount)}
-                </span>
-                <span className="font-mono-num font-semibold">
-                  {b.status === "active" && "結果待ち"}
-                  {b.status === "won" && `的中 +${formatPoints(b.payout_amount)}`}
-                  {b.status === "lost" && "不的中"}
-                  {b.status === "refunded" && "返金済み"}
-                </span>
+              <li key={b.id} className="space-y-0.5">
+                <div className="flex justify-between gap-2">
+                  <span>
+                    {outcomeLabel(market.outcome_options, b.outcome)} に {formatPoints(b.amount)}
+                  </span>
+                  <span className="font-mono-num font-semibold whitespace-nowrap">
+                    {b.status === "active" && "結果待ち"}
+                    {b.status === "won" && `的中 +${formatPoints(b.payout_amount)}`}
+                    {b.status === "lost" && "不的中"}
+                    {b.status === "refunded" && "返金済み"}
+                    {b.status === "void" && `取消済み（返金 ${formatPoints(b.payout_amount)}）`}
+                  </span>
+                </div>
+                {b.status === "active" && market.status === "open" && (
+                  <CancelBetButton
+                    betId={b.id}
+                    amount={Number(b.amount)}
+                    penalty={BET_CANCEL_PENALTY()}
+                  />
+                )}
               </li>
             ))}
           </ul>
+          <p className="text-[11px] text-ink-faint">
+            結果判定の予定:{" "}
+            {market.resolves_at ? formatDateTime(market.resolves_at) : "未設定（締切後にコミュニティが判定します）"}
+          </p>
         </section>
       )}
 
       {disputable && profile && (
         <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
           <h2 className="text-sm font-bold">異議申し立て / DAO投票</h2>
-          {!openChallenge && <RaiseChallengeForm marketId={market.id} />}
+          {!openChallenge && (
+            <RaiseChallengeForm
+              marketId={market.id}
+              bond={CHALLENGE_BOND()}
+              votingHours={CHALLENGE_VOTING_HOURS()}
+              awardPct={BOND_AWARD_BPS() / 100}
+              balance={Number(profile.points_balance)}
+            />
+          )}
 
           {openChallenge && (
             <div className="space-y-3">
@@ -245,6 +295,11 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
                 <p>投票締切 {formatDateTime(openChallenge.voting_deadline)}</p>
               </div>
               <OutcomeBar pool={votePool} />
+              <p className="text-[11px] text-ink-muted">
+                正解の選択肢に投票すると、先着{VOTE_REWARD_SLOTS()}名に{VOTE_FLAT_REWARD()}pt、
+                さらに正解者全員でテラ銭の{VOTER_RAKE_SHARE_BPS() / 100}%を按分して受け取れます。
+                （現在の投票数: {voteTotal}票）
+              </p>
               <ChallengeVoteButtons challengeId={openChallenge.id} outcomeOptions={market.outcome_options} />
             </div>
           )}
@@ -279,6 +334,8 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
       {profile?.role === "admin" && (market.status === "pending_resolution" || market.status === "disputed") && (
         <AdminResolveForm marketId={market.id} outcomeOptions={market.outcome_options} />
       )}
+
+      <RelatedMarkets market={market} />
     </div>
   );
 }
