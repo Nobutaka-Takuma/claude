@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
-import { proposeMarket, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { proposeMarket } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 
 const bodySchema = z
   .object({
@@ -59,9 +60,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, market });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

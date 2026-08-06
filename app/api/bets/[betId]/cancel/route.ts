@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/session";
-import { cancelBet, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { cancelBet } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 import { BET_CANCEL_PENALTY } from "@/lib/config";
 
 // POST /api/bets/:betId/cancel
@@ -20,9 +21,6 @@ export async function POST(_req: Request, ctx: RouteContext<"/api/bets/[betId]/c
     const bet = await cancelBet(userId, betId, BET_CANCEL_PENALTY());
     return NextResponse.json({ ok: true, bet });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiErrorMessage } from "@/lib/errorMessages";
 import type { OutcomeOption } from "@/lib/types";
 
 export default function ChallengeVoteButtons({
@@ -25,7 +26,7 @@ export default function ChallengeVoteButtons({
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "unknown" }));
-      setError(body.error === "already_voted" ? "既に投票済みです" : "投票できませんでした");
+      setError(apiErrorMessage(body.error, "投票できませんでした。", body.detail));
       setSubmitting(null);
       return;
     }

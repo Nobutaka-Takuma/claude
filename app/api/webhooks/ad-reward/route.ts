@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
-import { completeTask, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { completeTask, RpcError } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 
 // GET /api/webhooks/ad-reward
 //
@@ -42,15 +43,12 @@ export async function GET(req: Request) {
     });
     return NextResponse.json({ ok: true, log });
   } catch (err) {
-    if (err instanceof RpcError) {
-      if (err.message.includes("duplicate")) {
-        // The ad network retries on non-2xx; treat a duplicate as success
-        // so it stops retrying.
-        return NextResponse.json({ ok: true, note: "already_processed" });
-      }
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
+    if (err instanceof RpcError && err.message.includes("duplicate")) {
+      // The ad network retries on non-2xx; treat a duplicate as success
+      // so it stops retrying.
+      return NextResponse.json({ ok: true, note: "already_processed" });
     }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }
 

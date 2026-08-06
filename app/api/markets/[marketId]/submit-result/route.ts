@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentProfile } from "@/lib/auth";
-import { submitProvisionalResult, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { submitProvisionalResult } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 import { RESOLUTION_BOND, DISPUTE_WINDOW_MINUTES } from "@/lib/config";
 
 // POST /api/markets/:marketId/submit-result
@@ -44,9 +45,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
     );
     return NextResponse.json({ ok: true, market });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

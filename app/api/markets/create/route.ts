@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
-import { createMarket, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { createMarket } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 import { MARKET_CREATION_COST, MARKET_CREATOR_FEE_BPS, MARKET_SEED_BPS } from "@/lib/config";
 
 // POST /api/markets/create
@@ -77,9 +78,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, market });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

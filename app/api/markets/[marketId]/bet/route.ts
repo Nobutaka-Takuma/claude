@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
-import { placeBet, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { placeBet } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 
 const bodySchema = z.object({
   outcome: z.string().min(1).max(40),
@@ -24,9 +25,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
     const bet = await placeBet(userId, marketId, parsed.data.outcome, parsed.data.amount);
     return NextResponse.json({ ok: true, bet });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

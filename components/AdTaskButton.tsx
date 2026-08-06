@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiErrorMessage } from "@/lib/errorMessages";
 
 const WATCH_SECONDS = 3;
 
@@ -33,7 +34,11 @@ export default function AdTaskButton({
     const res = await fetch(`/api/tasks/${taskId}/complete`, { method: "POST" });
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "unknown" }));
-      setError(body.error === "limit_reached" ? "本日の視聴上限に達しています" : "エラーが発生しました");
+      setError(
+        body.error === "limit_reached" || body.error === "completion_limit_reached"
+          ? "本日の視聴上限に達しています"
+          : apiErrorMessage(body.error, "エラーが発生しました。", body.detail)
+      );
       setPhase("error");
       return;
     }

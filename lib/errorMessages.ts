@@ -33,6 +33,20 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   resolves_at_before_close: "結果判定の予定日時は、ベット締切より後にしてください。",
   invalid_dispute_window: "異議申し立て期間の指定が不正です。",
   article_not_found_create: "元にするニュース記事が見つかりません。",
+  market_not_open_for_voting: "このマーケットは賛成投票を受け付けていません。",
+  invalid_seed_bps: "初期賞金の割合の設定が不正です。",
+  user_not_found: "アカウントが見つかりません。ログインし直してください。",
+  task_not_found: "タスクが見つかりません。",
+  task_inactive: "このタスクは現在受付を停止しています。",
+  task_not_started: "このタスクはまだ開始されていません。",
+  task_ended: "このタスクは終了しました。",
+  completion_limit_reached: "このタスクの実行回数が上限に達しています。",
+  server_error: "サーバー側でエラーが発生しました。",
+  // Raised when the running code expects a table, column, or function the
+  // database doesn't have — almost always a `git pull` without a
+  // `npm run migrate`. Says what to do rather than what broke.
+  schema_out_of_date:
+    "アプリの更新にデータベースが追いついていません。アプリを止めて `npm run migrate` を実行し、もう一度お試しください。",
 };
 
 // Zod rejects the whole body with one code, which tells the user nothing
@@ -50,17 +64,37 @@ export const FIELD_ERROR_MESSAGES: Record<string, string> = {
   league: "大会・リーグ名は60文字以内で入力してください。",
   description: "補足説明は2000文字以内で入力してください。",
   category: "カテゴリの指定が不正です。",
+  newsArticleId: "紐付けるニュース記事の指定が不正です。",
+  marketKind: "お題の種類を選び直してください。",
+  outcome: "選択肢が正しく選ばれていません。",
+  amount: "金額を正しく入力してください。",
+  reason: "理由を入力してください。",
 };
 
+// Falls back to naming the offending fields rather than returning null:
+// "which field" is useful even when we have no tailored sentence for it,
+// and silently dropping it is how a validation failure turned into a
+// featureless "failed" message.
 export function fieldErrorMessage(fields: string[] | undefined): string | null {
   if (!fields || fields.length === 0) return null;
-  const messages = fields.map((f) => FIELD_ERROR_MESSAGES[f]).filter(Boolean);
-  return messages.length > 0 ? messages.join(" ") : null;
+  const known = fields.map((f) => FIELD_ERROR_MESSAGES[f]).filter(Boolean);
+  if (known.length > 0) return known.join(" ");
+  const unknown = fields.filter((f) => !FIELD_ERROR_MESSAGES[f]);
+  return unknown.length > 0 ? `入力内容を確認してください。（項目: ${unknown.join(", ")}）` : null;
 }
 
-export function apiErrorMessage(code: string | undefined, fallback: string): string {
-  if (!code) return fallback;
-  return API_ERROR_MESSAGES[code] ?? fallback;
+// `detail` is the server's raw explanation. It's appended whenever the
+// code isn't one we have Japanese copy for, so an unforeseen failure still
+// tells the user *something* they can report, instead of a dead end.
+export function apiErrorMessage(
+  code: string | undefined,
+  fallback: string,
+  detail?: string | null
+): string {
+  const mapped = code ? API_ERROR_MESSAGES[code] : undefined;
+  if (mapped) return mapped;
+  const reason = detail || (code && code !== "unknown" ? code : null);
+  return reason ? `${fallback}（理由: ${reason}）` : fallback;
 }
 
 // True when the failure means the user's session is gone, so the caller

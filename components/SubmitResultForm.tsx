@@ -47,7 +47,7 @@ export default function SubmitResultForm({
         router.push("/login");
         return;
       }
-      setError(apiErrorMessage(body.error, "判定を提案できませんでした。"));
+      setError(apiErrorMessage(body.error, "判定を提案できませんでした。", body.detail));
       setSubmitting(null);
       return;
     }

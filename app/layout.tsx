@@ -3,6 +3,7 @@ import "./globals.css";
 import { getCurrentProfile } from "@/lib/auth";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
+import SchemaWarning from "@/components/SchemaWarning";
 
 export const metadata: Metadata = {
   title: "Prediction Market DAO",
@@ -15,6 +16,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-bg text-ink">
+        <SchemaWarning />
         <Header profile={profile} />
         <main className="flex-1 w-full max-w-3xl mx-auto px-4 pb-24 pt-6">
           {children}

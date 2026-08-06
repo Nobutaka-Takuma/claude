@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
-import { raiseChallenge, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { raiseChallenge } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 import { CHALLENGE_BOND, CHALLENGE_VOTING_HOURS } from "@/lib/config";
 
 // POST /api/markets/:marketId/challenge
@@ -38,9 +39,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
     );
     return NextResponse.json({ ok: true, challenge });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

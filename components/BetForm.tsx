@@ -68,7 +68,7 @@ export default function BetForm({
         router.push("/login");
         return;
       }
-      setError(apiErrorMessage(body.error, "ベットに失敗しました"));
+      setError(apiErrorMessage(body.error, "ベットに失敗しました", body.detail));
       setSubmitting(null);
       return;
     }

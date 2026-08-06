@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentProfile } from "@/lib/auth";
-import { settleMarket, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { settleMarket } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 
 const bodySchema = z.object({
   outcome: z.string().min(1).max(40),
@@ -26,9 +27,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
     const market = await settleMarket(marketId, parsed.data.outcome);
     return NextResponse.json({ ok: true, market });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

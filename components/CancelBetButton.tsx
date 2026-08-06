@@ -38,7 +38,7 @@ export default function CancelBetButton({
         router.push("/login");
         return;
       }
-      setError(apiErrorMessage(body.error, "取り消せませんでした。"));
+      setError(apiErrorMessage(body.error, "取り消せませんでした。", body.detail));
       setSubmitting(false);
       return;
     }

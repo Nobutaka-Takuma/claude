@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
-import { requestEarlyResolution, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { requestEarlyResolution } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 import { EARLY_RESOLUTION_BOND, EARLY_RESOLUTION_VOTING_HOURS } from "@/lib/config";
 
 // POST /api/markets/:marketId/early-resolution
@@ -36,9 +37,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
     );
     return NextResponse.json({ ok: true, challenge });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

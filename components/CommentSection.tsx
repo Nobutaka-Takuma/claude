@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiErrorMessage } from "@/lib/errorMessages";
 import { formatDateTime } from "@/lib/format";
 import type { Comment } from "@/lib/types";
 
@@ -33,7 +34,8 @@ export default function CommentSection({
     });
 
     if (!res.ok) {
-      setError("コメントを送信できませんでした");
+      const body = await res.json().catch(() => ({ error: "unknown" }));
+      setError(apiErrorMessage(body.error, "コメントを送信できませんでした。", body.detail));
       setSubmitting(false);
       return;
     }

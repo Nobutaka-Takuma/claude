@@ -120,7 +120,7 @@ export default function MarketForm({
       }
       setError(
         fieldErrorMessage(body.fields) ??
-          apiErrorMessage(body.error, "マーケットを作成できませんでした。")
+          apiErrorMessage(body.error, "マーケットを作成できませんでした。", body.detail)
       );
       setSubmitting(false);
       return;

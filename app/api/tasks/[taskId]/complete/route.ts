@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
 import { query } from "@/lib/db";
-import { completeTask, rpcErrorStatus, RpcError } from "@/lib/rpc";
+import { completeTask } from "@/lib/rpc";
+import { rpcErrorResponse } from "@/lib/apiError";
 import type { Task } from "@/lib/types";
 
 // POST /api/tasks/:taskId/complete
@@ -58,9 +59,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/tasks/[taskId]/
     const log = await completeTask(userId, taskId, idempotencyKey, verification);
     return NextResponse.json({ ok: true, log });
   } catch (err) {
-    if (err instanceof RpcError) {
-      return NextResponse.json({ error: err.message }, { status: rpcErrorStatus(err.message) });
-    }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

@@ -5,14 +5,41 @@ import type { Bet, Challenge, Market, TreasuryLog } from "./types";
 // Postgres surfaces `raise exception 'foo'` as error.message === 'foo', so
 // these RPC wrappers just forward that text — route handlers map it to an
 // HTTP status with rpcErrorStatus() below.
-export class RpcError extends Error {}
+//
+// `detail` carries the original Postgres text even when `message` has been
+// normalised, so an error nobody anticipated still reaches the screen as
+// something readable instead of a shrug.
+export class RpcError extends Error {
+  detail?: string;
+  constructor(message: string, detail?: string) {
+    super(message);
+    this.detail = detail;
+  }
+}
+
+// A pulled-but-not-migrated database is the single most common way this
+// app breaks: the code calls a function or column that the local DB
+// doesn't have yet, and Postgres answers with "function ... does not
+// exist" — text that means nothing to someone who just ran `git pull`.
+// Translating those three SQLSTATEs into one actionable code turns the
+// mystery into an instruction.
+const SCHEMA_MISMATCH_CODES = new Set([
+  "42883", // undefined_function
+  "42703", // undefined_column
+  "42P01", // undefined_table
+]);
 
 async function callRpc<T extends QueryResultRow>(sql: string, params: unknown[]): Promise<T> {
   try {
     const result = await query<T>(sql, params);
     return result.rows[0];
   } catch (err) {
-    throw new RpcError(err instanceof Error ? err.message : String(err));
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as { code?: string } | null)?.code;
+    if (code && SCHEMA_MISMATCH_CODES.has(code)) {
+      throw new RpcError("schema_out_of_date", message);
+    }
+    throw new RpcError(message, message);
   }
 }
 
@@ -208,6 +235,9 @@ export async function finalizeExpiredMarkets() {
 }
 
 export function rpcErrorStatus(message: string): number {
+  // The request was fine; the deployment is behind. 503 rather than 4xx so
+  // it doesn't read as the user's mistake.
+  if (message === "schema_out_of_date") return 503;
   if (
     message.includes("insufficient") ||
     message.includes("already_bet_other_outcome") ||

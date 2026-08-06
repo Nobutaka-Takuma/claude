@@ -55,7 +55,7 @@ export default function EarlyResolutionForm({
         router.push("/login");
         return;
       }
-      setError(apiErrorMessage(body.error, "早期確定を申請できませんでした。"));
+      setError(apiErrorMessage(body.error, "早期確定を申請できませんでした。", body.detail));
       setSubmitting(null);
       return;
     }
