@@ -24,11 +24,23 @@ export const MARKET_SEED_BPS = () => intFromEnv("MARKET_SEED_BPS", 9000);
 // Approval votes a *free* proposal needs before it opens for betting.
 export const MARKET_APPROVAL_THRESHOLD = () => intFromEnv("MARKET_APPROVAL_THRESHOLD", 3);
 
+// Prize money the treasury puts up for a market an admin opens. Admins
+// pay no creation fee, so without this an operator-seeded market would
+// open with an empty pot and nobody would have a reason to bet first.
+export const ADMIN_MARKET_SEED = () => intFromEnv("ADMIN_MARKET_SEED", 90);
+
 // Points locked up when a user proposes a market's result. Returned if
 // the result survives the dispute window (or a DAO vote), forfeited to
 // the treasury if the DAO overturns it. Set it high enough that lying
 // costs more than a wrong settlement could pay the liar.
 export const RESOLUTION_BOND = () => intFromEnv("RESOLUTION_BOND", 100);
+
+// Paid to whoever reported the result, on top of their returned bond,
+// once it survives the dispute window or the vote. Getting the bond back
+// is not an incentive — it's what happens if you do nothing — so this is
+// the actual wage for checking a source and reporting it. Funded by the
+// slice of each market's creation fee the treasury keeps.
+export const RESOLUTION_REWARD = () => intFromEnv("RESOLUTION_REWARD", 10);
 
 // How long the community has to dispute a proposed result.
 export const DISPUTE_WINDOW_MINUTES = () => intFromEnv("DISPUTE_WINDOW_MINUTES", 1440);

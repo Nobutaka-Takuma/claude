@@ -15,6 +15,7 @@ import { summarizePools } from "@/lib/pool";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import {
   RESOLUTION_BOND,
+  RESOLUTION_REWARD,
   DISPUTE_WINDOW_MINUTES,
   CHALLENGE_BOND,
   CHALLENGE_VOTING_HOURS,
@@ -168,8 +169,18 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
       </section>
 
       {market.status === "resolved" && (
-        <section className="rounded-xl border border-line bg-surface-2 p-4">
+        <section className="rounded-xl border border-line bg-surface-2 p-4 space-y-1">
           <p className="text-sm font-bold">結果: {outcomeLabel(market.outcome_options, market.outcome)}</p>
+          {market.resolution_evidence_url && (
+            <a
+              href={market.resolution_evidence_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-accent-ink font-semibold underline break-all"
+            >
+              🔗 判定の証跡
+            </a>
+          )}
         </section>
       )}
 
@@ -183,6 +194,18 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             {Number(market.resolution_bond) > 0 &&
               `（保証金 ${Number(market.resolution_bond).toLocaleString("ja-JP")}pt を預託中）`}
           </p>
+          {market.resolution_evidence_url && (
+            <p className="text-[11px]">
+              <a
+                href={market.resolution_evidence_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent-ink font-semibold underline break-all"
+              >
+                🔗 証跡を確認する
+              </a>
+            </p>
+          )}
           {market.status === "pending_resolution" && market.dispute_deadline && (
             <p className="text-[11px] text-ink-muted">
               異議申し立て期限 {formatDateTime(market.dispute_deadline)}（{formatRelativeToNow(market.dispute_deadline)}）— 期限までに異議がなければ自動的にこの結果で確定・精算されます。
@@ -267,7 +290,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           </ul>
           <p className="text-[11px] text-ink-faint">
             結果判定の予定:{" "}
-            {market.resolves_at ? formatDateTime(market.resolves_at) : "未設定（締切後にコミュニティが判定します）"}
+            {market.resolves_at ? formatDateTime(market.resolves_at) : "未設定（締切後にコミュニティが報告します）"}
           </p>
         </section>
       )}
@@ -313,6 +336,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
               marketId={market.id}
               outcomeOptions={market.outcome_options}
               bond={RESOLUTION_BOND()}
+              reward={RESOLUTION_REWARD()}
               disputeWindowHours={Math.round(DISPUTE_WINDOW_MINUTES() / 60)}
               isAdmin={profile.role === "admin"}
               balance={Number(profile.points_balance)}

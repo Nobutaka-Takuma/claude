@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/session";
 import { query } from "@/lib/db";
+import { rpcErrorResponse } from "@/lib/apiError";
 
 const bodySchema = z.object({
   votedOutcome: z.string().min(1).max(40),
@@ -30,6 +31,6 @@ export async function POST(req: Request, ctx: RouteContext<"/api/challenges/[cha
     if (message.includes("duplicate key")) {
       return NextResponse.json({ error: "already_voted" }, { status: 409 });
     }
-    throw err;
+    return rpcErrorResponse(err);
   }
 }

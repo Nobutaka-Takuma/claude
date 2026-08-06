@@ -1,5 +1,6 @@
 import { query } from "./db";
 import { syncMarketStatus, finalizeExpiredMarkets } from "./rpc";
+import { BOND_AWARD_BPS, RESOLUTION_REWARD } from "./config";
 import type {
   Bet,
   Challenge,
@@ -46,7 +47,7 @@ export async function getUserVerifiedCompletionCounts(userId: string): Promise<R
 // every market read path instead of relying on a real scheduled job.
 async function tickMarketLifecycle() {
   await syncMarketStatus();
-  await finalizeExpiredMarkets();
+  await finalizeExpiredMarkets(BOND_AWARD_BPS(), RESOLUTION_REWARD());
 }
 
 export async function listMarkets(status?: string): Promise<Market[]> {
@@ -153,6 +154,27 @@ export async function getOpenVotingTasks(
        ))
      order by c.voting_deadline asc`,
     [userId, voteThreshold]
+  );
+  return result.rows;
+}
+
+// Markets whose scheduled resolution time has arrived and that still
+// have nobody's result on them, surfaced in the task centre.
+//
+// resolves_at is the whole point of the field: it's the moment the answer
+// is supposed to be knowable, so it's when the work of reporting becomes
+// claimable. Markets locked long ago with no reported result show up too
+// (resolves_at is never null since 0013), so nothing gets stranded.
+export async function getOpenResolutionTasks(limit = 20): Promise<Market[]> {
+  await tickMarketLifecycle();
+  const result = await query<Market>(
+    `select * from markets
+     where status = 'locked'
+       and resolves_at is not null
+       and resolves_at <= now()
+     order by resolves_at asc
+     limit $1`,
+    [limit]
   );
   return result.rows;
 }

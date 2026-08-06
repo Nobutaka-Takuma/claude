@@ -5,6 +5,8 @@ import { listMarkets, getProposedMarkets } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
 import { marketHeading } from "@/lib/outcome";
 import StatusBadge from "@/components/StatusBadge";
+import AdminMarketForm from "@/components/AdminMarketForm";
+import { ADMIN_MARKET_SEED } from "@/lib/config";
 
 export default async function AdminPage() {
   const profile = await getCurrentProfile();
@@ -24,6 +26,8 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-lg font-extrabold">管理画面</h1>
+
+      <AdminMarketForm seedAmount={ADMIN_MARKET_SEED()} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-bold">判定・精算待ちのマーケット</h2>

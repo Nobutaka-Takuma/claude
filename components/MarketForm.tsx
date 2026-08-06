@@ -15,8 +15,9 @@ const KIND_OPTIONS: { kind: MarketKind; label: string; hint: string }[] = [
 
 // "paid" opens the market immediately for a points fee and earns the
 // creator a share of its rake; "free" costs nothing but waits for
-// community approval votes before it opens.
-export type MarketFormMode = "paid" | "free";
+// community approval votes before it opens; "admin" opens immediately
+// with the treasury funding the seed and no creator fee.
+export type MarketFormMode = "paid" | "free" | "admin";
 
 export default function MarketForm({
   mode,
@@ -56,6 +57,7 @@ export default function MarketForm({
 
   const catDef = categoryDef(category);
   const isSport = !!catDef.isSport;
+  const opensImmediately = mode !== "free";
 
   function updateOption(i: number, value: string) {
     setCustomOptions((prev) => prev.map((o, idx) => (idx === i ? value : o)));
@@ -95,6 +97,7 @@ export default function MarketForm({
       marketKind,
       description,
       category,
+      resolvesAt,
       league: isSport && league.trim() ? league.trim() : undefined,
       matchweek: isSport && matchweek ? Number(matchweek) : undefined,
       homeTeam: marketKind === "match_winner" ? homeTeam : undefined,
@@ -102,12 +105,12 @@ export default function MarketForm({
       outcomeOptions: marketKind === "match_winner" ? undefined : outcomeOptions,
     };
 
-    const res = await fetch(mode === "paid" ? "/api/markets/create" : "/api/markets/propose", {
+    const res = await fetch(opensImmediately ? "/api/markets/create" : "/api/markets/propose", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        mode === "paid"
-          ? { ...shared, closesAt, resolvesAt: resolvesAt || undefined, newsArticleId }
+        opensImmediately
+          ? { ...shared, closesAt, newsArticleId, asAdmin: mode === "admin" }
           : { ...shared, kickoffTime: closesAt }
       ),
     });
@@ -302,20 +305,20 @@ export default function MarketForm({
         />
       </label>
 
-      {mode === "paid" && (
-        <label className="block space-y-1">
-          <span className="text-xs text-ink-muted">結果判定の予定日時（任意）</span>
-          <input
-            type="datetime-local"
-            value={resolvesAt}
-            onChange={(e) => setResolvesAt(e.target.value)}
-            className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
-          />
-          <span className="block text-[11px] text-ink-faint">
-            いつ結果が分かるかの目安です。ベッターが「いつ決着するか」を判断できるようになります。
-          </span>
-        </label>
-      )}
+      <label className="block space-y-1">
+        <span className="text-xs text-ink-muted">結果判定の予定日時</span>
+        <input
+          required
+          type="datetime-local"
+          value={resolvesAt}
+          onChange={(e) => setResolvesAt(e.target.value)}
+          className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
+        />
+        <span className="block text-[11px] text-ink-faint">
+          結果が分かる日時です。この時刻を過ぎると、結果の入力がタスクセンターに掲示され、
+          誰かが証跡付きで結果を報告できるようになります。
+        </span>
+      </label>
 
       <label className="block space-y-1">
         <span className="text-xs text-ink-muted">判定基準・補足（任意）</span>
@@ -339,15 +342,19 @@ export default function MarketForm({
       >
         {submitting
           ? "送信中…"
-          : mode === "paid"
-            ? `${creationCost}pt を支払って公開する`
-            : "無料で提案する"}
+          : mode === "admin"
+            ? "管理者として公開する（無料）"
+            : mode === "paid"
+              ? `${creationCost}pt を支払って公開する`
+              : "無料で提案する"}
       </button>
 
       <p className="text-[11px] text-ink-faint">
-        {mode === "paid"
-          ? `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初にベットする人も勝てば増えます。さらに精算時のテラ銭の${creatorFeePct}%があなたに支払われます。`
-          : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。初期賞金も作成者報酬もありません。`}
+        {mode === "admin"
+          ? `作成料はかかりません。初期賞金${seedAmount}ptは金庫（Treasury）が負担し、的中者に分配されます。運営が場を用意する立場なので、作成者報酬は受け取りません。`
+          : mode === "paid"
+            ? `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初にベットする人も勝てば増えます。さらに精算時のテラ銭の${creatorFeePct}%があなたに支払われます。`
+            : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。初期賞金も作成者報酬もありません。`}
       </p>
     </form>
   );

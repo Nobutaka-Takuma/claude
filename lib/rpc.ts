@@ -82,11 +82,14 @@ export interface ProposeMarketInput {
   category: string;
   homeTeam: string | null;
   awayTeam: string | null;
+  resolvesAt: string;
+  league: string | null;
+  matchweek: number | null;
 }
 
 export function proposeMarket(input: ProposeMarketInput) {
   return callRpc<Market>(
-    "select * from propose_market($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    "select * from propose_market($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
     [
       input.userId,
       input.title,
@@ -97,6 +100,9 @@ export function proposeMarket(input: ProposeMarketInput) {
       input.category,
       input.homeTeam,
       input.awayTeam,
+      input.resolvesAt,
+      input.league,
+      input.matchweek,
     ]
   );
 }
@@ -118,6 +124,10 @@ export interface CreateMarketInput {
   league: string | null;
   matchweek: number | null;
   seedBps: number;
+  // Overrides the seed computed from creationCost. Used for admin
+  // markets, which pay no fee but still get prize money from the
+  // treasury.
+  seedAmount?: number | null;
 }
 
 // Paid creation: charges creationCost and opens the market immediately,
@@ -125,7 +135,7 @@ export interface CreateMarketInput {
 // (proposeMarket above is the free, vote-to-open alternative.)
 export function createMarket(input: CreateMarketInput) {
   return callRpc<Market>(
-    "select * from create_market($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+    "select * from create_market($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)",
     [
       input.userId,
       input.title,
@@ -143,6 +153,7 @@ export function createMarket(input: CreateMarketInput) {
       input.league,
       input.matchweek,
       input.seedBps,
+      input.seedAmount ?? null,
     ]
   );
 }
@@ -171,14 +182,16 @@ export function submitProvisionalResult(
   outcome: string,
   disputeWindowMinutes: number,
   proposedBy: string | null = null,
-  bond = 0
+  bond = 0,
+  evidenceUrl: string | null = null
 ) {
-  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3, $4, $5)", [
+  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3, $4, $5, $6)", [
     marketId,
     outcome,
     disputeWindowMinutes,
     proposedBy,
     bond,
+    evidenceUrl,
   ]);
 }
 
@@ -230,8 +243,8 @@ export async function syncMarketStatus() {
 // Lazy-cron counterpart to sync_market_status: settles any
 // pending_resolution market whose dispute window closed uncontested, and
 // tallies + settles any disputed market whose DAO voting_deadline closed.
-export async function finalizeExpiredMarkets() {
-  await query("select finalize_expired_markets()");
+export async function finalizeExpiredMarkets(bondAwardBps: number, resolutionReward: number) {
+  await query("select finalize_expired_markets($1, $2)", [bondAwardBps, resolutionReward]);
 }
 
 export function rpcErrorStatus(message: string): number {

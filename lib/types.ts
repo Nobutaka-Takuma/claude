@@ -86,6 +86,9 @@ export interface Market {
   resolves_at: string | null;
   league: string | null;
   matchweek: number | null;
+  // Link backing the reported result, so the dispute window is usable by
+  // someone who wasn't watching.
+  resolution_evidence_url: string | null;
 }
 
 export interface NewsArticle {

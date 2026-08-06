@@ -98,10 +98,11 @@ async function seedMarkets() {
     await pool.query(
       `insert into markets (
          title, description, category, source, home_team, away_team, kickoff_time,
-         status, rake_bps, market_kind, outcome_options, outcome, resolved_at
+         status, rake_bps, market_kind, outcome_options, outcome, resolved_at, resolves_at
        ) values (
          $1, 'J1リーグ', 'soccer', 'api_auto', $2, $3, ${kickoffExpr},
-         $4, 1000, 'match_winner', $5, $6, ${resolvedAtExpr}
+         $4, 1000, 'match_winner', $5, $6, ${resolvedAtExpr},
+         ${kickoffExpr} + interval '3 hours'
        )`,
       [`${home} vs ${away}`, home, away, status, matchWinnerOptions(home, away), outcome]
     );

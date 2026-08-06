@@ -38,9 +38,12 @@ async function seedFxArticle() {
 
   await pool.query(
     `insert into markets (
-       title, description, category, source, kickoff_time, status,
+       title, description, category, source, kickoff_time, resolves_at, status,
        market_kind, outcome_options, news_article_id
-     ) values ($1, $2, 'finance', 'news_curated', now() + interval '10 days', 'open', 'binary', $3, $4)`,
+     ) values (
+       $1, $2, 'finance', 'news_curated', now() + interval '10 days',
+       now() + interval '10 days 6 hours', 'open', 'binary', $3, $4
+     )`,
     [
       "来週末(8/14)までにドル円は156円台に到達する？",
       "上記ニュースを受けた為替予想マーケットです。",

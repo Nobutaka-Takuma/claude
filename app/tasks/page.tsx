@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
-import { getActiveTasks, getUserVerifiedCompletionCounts, getOpenVotingTasks } from "@/lib/data";
-import { VOTE_FLAT_REWARD, VOTE_REWARD_SLOTS, VOTER_RAKE_SHARE_BPS } from "@/lib/config";
+import {
+  getActiveTasks,
+  getUserVerifiedCompletionCounts,
+  getOpenVotingTasks,
+  getOpenResolutionTasks,
+} from "@/lib/data";
+import {
+  VOTE_FLAT_REWARD,
+  VOTE_REWARD_SLOTS,
+  VOTER_RAKE_SHARE_BPS,
+  RESOLUTION_BOND,
+  RESOLUTION_REWARD,
+} from "@/lib/config";
 import { marketHeading } from "@/lib/outcome";
 import { formatRelativeToNow } from "@/lib/format";
 import { formatPoints } from "@/lib/format";
@@ -13,6 +24,7 @@ export default async function TasksPage() {
   const tasks = await getActiveTasks();
   const completionCounts = profile ? await getUserVerifiedCompletionCounts(profile.id) : {};
   const votingTasks = profile ? await getOpenVotingTasks(profile.id, VOTE_REWARD_SLOTS()) : [];
+  const resolutionTasks = profile ? await getOpenResolutionTasks() : [];
 
   if (!profile) {
     return (
@@ -35,6 +47,33 @@ export default async function TasksPage() {
       <p className="text-xs text-ink-faint">
         完了すると自動でポイントが付与され、同時に金庫(Treasury)にも積み立てられます。
       </p>
+
+      {resolutionTasks.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold">📝 結果の入力</h2>
+          <p className="text-[11px] text-ink-faint">
+            判定予定日時を過ぎたのに、まだ結果が報告されていないマーケットです。
+            保証金{RESOLUTION_BOND()}ptを預けて証跡URLとともに報告し、その結果が確定すれば
+            <span className="font-bold text-gold">保証金の返却＋{RESOLUTION_REWARD()}pt</span>を受け取れます。
+            間違っていた場合、保証金は没収されます。
+          </p>
+          {resolutionTasks.map((m) => (
+            <Link
+              key={m.id}
+              href={`/markets/${m.id}`}
+              className="block rounded-xl border border-gold/50 bg-gold-soft p-4 space-y-1 hover:border-gold"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{marketHeading(m)}</span>
+                <span className="font-mono-num text-xs font-bold text-gold">+{RESOLUTION_REWARD()}pt</span>
+              </div>
+              <p className="text-[11px] text-ink-muted">
+                判定予定 {m.resolves_at ? formatRelativeToNow(m.resolves_at) : "—"} ・ 結果待ち
+              </p>
+            </Link>
+          ))}
+        </section>
+      )}
 
       {votingTasks.length > 0 && (
         <section className="space-y-3">
