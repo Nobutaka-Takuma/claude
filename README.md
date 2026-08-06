@@ -316,7 +316,26 @@ Polymarket/ミライマとの差別化として、「ニュース記事＋その
 
 ```bash
 # Ctrl+C でアプリを止めてから
+
+# macOS / Linux
 rm -rf .next
+
+# Windows (PowerShell) — rm -rf は使えません
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+
+npm run dev
+```
+
+### 更新はZIPの上書きではなくgit pullで
+
+GitHubの「Download ZIP」で取得したフォルダ（`claude-main`）に新しいZIPを上書き展開する運用は、削除されたファイルが残る・アプリ稼働中にファイルが差し替わって`.next`が壊れる、といった形で**原因の分かりにくい不具合になります**。`git clone`しておけば`git pull origin main`だけで済み、削除も正しく反映されます。
+
+```bash
+git clone https://github.com/Nobutaka-Takuma/claude.git
+cd claude
+npm install
+cp .env.example .env.local   # 既存の .env.local があればそれをコピー
+npm run migrate
 npm run dev
 ```
 
