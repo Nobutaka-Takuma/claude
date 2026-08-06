@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
+import { apiErrorMessage, isAuthError, readErrorBody } from "@/lib/errorMessages";
 
 export default function CancelBetButton({
   betId,
@@ -33,7 +33,7 @@ export default function CancelBetButton({
     setError(null);
     const res = await fetch(`/api/bets/${betId}/cancel`, { method: "POST" });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       if (isAuthError(body.error)) {
         router.push("/login");
         return;

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage, isAuthError, fieldErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, isAuthError, fieldErrorMessage, readErrorBody } from "@/lib/errorMessages";
 import { CATEGORIES, categoryDef } from "@/lib/categories";
 
 export type MarketKind = "match_winner" | "binary" | "multi_outcome";
@@ -116,7 +116,7 @@ export default function MarketForm({
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       if (isAuthError(body.error)) {
         router.push("/login");
         return;

@@ -49,7 +49,15 @@ const bodySchema = z
   });
 
 export async function POST(req: Request) {
-  const profile = await getCurrentProfile();
+  // Inside the try from here on: an error thrown before it (a database
+  // hiccup while reading the session, say) escapes as Next's HTML error
+  // page, and the form fetching this endpoint can only parse JSON.
+  let profile;
+  try {
+    profile = await getCurrentProfile();
+  } catch (err) {
+    return rpcErrorResponse(err);
+  }
   if (!profile) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

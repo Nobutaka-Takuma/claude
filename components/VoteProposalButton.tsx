@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, readErrorBody } from "@/lib/errorMessages";
 
 export default function VoteProposalButton({
   marketId,
@@ -28,7 +28,7 @@ export default function VoteProposalButton({
     setError(null);
     const res = await fetch(`/api/markets/${marketId}/vote`, { method: "POST" });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       setError(apiErrorMessage(body.error, "投票できませんでした。", body.detail));
       setSubmitting(false);
       return;

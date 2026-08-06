@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, readErrorBody } from "@/lib/errorMessages";
 
 export default function RaiseChallengeForm({
   marketId,
@@ -47,7 +47,7 @@ export default function RaiseChallengeForm({
       body: JSON.stringify({ reason, evidenceUrl }),
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       setError(apiErrorMessage(body.error, "異議を申し立てられませんでした。", body.detail));
       setSubmitting(false);
       return;

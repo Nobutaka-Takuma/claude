@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import type { PoolBreakdown } from "@/lib/pool";
 import { estimateMultiplier } from "@/lib/pool";
 import type { OutcomeOption } from "@/lib/types";
-import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
+import { apiErrorMessage, isAuthError, readErrorBody } from "@/lib/errorMessages";
 
 const STAKE_PRESETS = [10, 50, 100, 500];
 
@@ -63,7 +63,7 @@ export default function BetForm({
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       if (isAuthError(body.error)) {
         router.push("/login");
         return;

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, readErrorBody } from "@/lib/errorMessages";
 import type { OutcomeOption } from "@/lib/types";
 
 export default function AdminResolveForm({
@@ -26,7 +26,7 @@ export default function AdminResolveForm({
       body: JSON.stringify({ outcome }),
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       setError(apiErrorMessage(body.error, "精算に失敗しました。", body.detail));
       setSubmitting(null);
       return;

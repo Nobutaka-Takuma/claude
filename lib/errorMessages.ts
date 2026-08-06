@@ -45,7 +45,9 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   task_not_started: "このタスクはまだ開始されていません。",
   task_ended: "このタスクは終了しました。",
   completion_limit_reached: "このタスクの実行回数が上限に達しています。",
-  server_error: "サーバー側でエラーが発生しました。",
+  // server_error is deliberately NOT mapped: it always arrives with a
+  // `detail`, and a generic "サーバーエラーです" would hide the one part
+  // of the response that says what actually broke.
   // Raised when the running code expects a table, column, or function the
   // database doesn't have — almost always a `git pull` without a
   // `npm run migrate`. Says what to do rather than what broke.
@@ -100,6 +102,38 @@ export function apiErrorMessage(
   if (mapped) return mapped;
   const reason = detail || (code && code !== "unknown" ? code : null);
   return reason ? `${fallback}（理由: ${reason}）` : fallback;
+}
+
+export interface ApiErrorBody {
+  error?: string;
+  detail?: string | null;
+  fields?: string[];
+}
+
+// Reads an error response without ever ending up with nothing to say.
+//
+// Every form used to do `res.json().catch(() => ({ error: "unknown" }))`,
+// which throws away the one fact still available when the body isn't
+// JSON: the HTTP status. A route that fails to compile, a dev server that
+// died, a proxy in the way — all of those return HTML, and the form
+// showed a bare "failed" with no clue. Now the status (and a hint of the
+// body) becomes the reason.
+export async function readErrorBody(res: Response): Promise<ApiErrorBody> {
+  const text = await res.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(text) as ApiErrorBody;
+    if (parsed && typeof parsed === "object" && (parsed.error || parsed.fields)) return parsed;
+  } catch {
+    // Not JSON — fall through to the status-based description.
+  }
+
+  const looksLikeHtml = /^\s*<!?[a-z]/i.test(text);
+  return {
+    error: "unknown",
+    detail: looksLikeHtml
+      ? `HTTP ${res.status} — サーバーがエラーページを返しました。npm run dev のターミナルにエラーが出ていないか確認してください`
+      : `HTTP ${res.status}${text ? ` ${text.slice(0, 120)}` : ""}`,
+  };
 }
 
 // True when the failure means the user's session is gone, so the caller

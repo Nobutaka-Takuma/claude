@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, readErrorBody } from "@/lib/errorMessages";
 
 interface Question {
   id: string;
@@ -38,7 +38,7 @@ export default function SurveyTaskCard({
       body: JSON.stringify({ answers }),
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       setError(apiErrorMessage(body.error, "送信できませんでした。", body.detail));
       setSubmitting(false);
       return;

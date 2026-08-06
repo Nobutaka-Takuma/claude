@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiErrorMessage, readErrorBody } from "@/lib/errorMessages";
 import { useRouter } from "next/navigation";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -30,8 +31,11 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
-      setError(ERROR_MESSAGES[body.error] ?? "エラーが発生しました。もう一度お試しください");
+      const body = await readErrorBody(res);
+      setError(
+        (body.error && ERROR_MESSAGES[body.error]) ??
+          apiErrorMessage(body.error, "エラーが発生しました。", body.detail)
+      );
       setSubmitting(false);
       return;
     }

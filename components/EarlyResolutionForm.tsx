@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { OutcomeOption } from "@/lib/types";
-import { apiErrorMessage, isAuthError } from "@/lib/errorMessages";
+import { apiErrorMessage, isAuthError, readErrorBody } from "@/lib/errorMessages";
 
 // Shown while a market is still taking bets. Used when the answer is
 // already known — a postponed match, a result announced early — so the
@@ -50,7 +50,7 @@ export default function EarlyResolutionForm({
       body: JSON.stringify({ outcome }),
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       if (isAuthError(body.error)) {
         router.push("/login");
         return;

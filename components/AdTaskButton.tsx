@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, readErrorBody } from "@/lib/errorMessages";
 
 const WATCH_SECONDS = 3;
 
@@ -33,7 +33,7 @@ export default function AdTaskButton({
     setPhase("submitting");
     const res = await fetch(`/api/tasks/${taskId}/complete`, { method: "POST" });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       setError(
         body.error === "limit_reached" || body.error === "completion_limit_reached"
           ? "本日の視聴上限に達しています"

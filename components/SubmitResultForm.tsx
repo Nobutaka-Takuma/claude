@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { OutcomeOption } from "@/lib/types";
-import { apiErrorMessage, isAuthError, fieldErrorMessage } from "@/lib/errorMessages";
+import { apiErrorMessage, isAuthError, fieldErrorMessage, readErrorBody } from "@/lib/errorMessages";
 
 export default function SubmitResultForm({
   marketId,
@@ -54,7 +54,7 @@ export default function SubmitResultForm({
       }),
     });
     if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "unknown" }));
+      const body = await readErrorBody(res);
       if (isAuthError(body.error)) {
         router.push("/login");
         return;
