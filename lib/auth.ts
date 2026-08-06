@@ -8,7 +8,7 @@ import type { Profile } from "./types";
 export class AuthError extends Error {}
 
 export async function signUp(email: string, password: string, username: string) {
-  const emailTaken = await query("select 1 from auth.users where email = $1", [email]);
+  const emailTaken = await query("select 1 from app_users where email = $1", [email]);
   if (emailTaken.rowCount) throw new AuthError("email_taken");
 
   const usernameTaken = await query("select 1 from profiles where username = $1", [username]);
@@ -16,11 +16,11 @@ export async function signUp(email: string, password: string, username: string) 
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // Single statement so the auth.users row and its profiles row are
+  // Single statement so the credentials row and its profiles row are
   // created atomically — no separate BEGIN/COMMIT needed.
   const result = await query<{ id: string }>(
     `with new_user as (
-       insert into auth.users (email, encrypted_password)
+       insert into app_users (email, encrypted_password)
        values ($1, $2)
        returning id
      )
@@ -46,7 +46,7 @@ export async function signUp(email: string, password: string, username: string) 
 
 export async function login(email: string, password: string) {
   const result = await query<{ id: string; encrypted_password: string }>(
-    "select id, encrypted_password from auth.users where email = $1",
+    "select id, encrypted_password from app_users where email = $1",
     [email]
   );
   const user = result.rows[0];

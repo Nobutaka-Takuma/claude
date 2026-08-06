@@ -11,6 +11,13 @@ export const pool =
   global.__pgPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL,
+    // Each serverless instance gets its own pool, and a Supabase project
+    // has a fixed connection budget shared across all of them. A small
+    // per-instance cap plus a short idle timeout keeps a traffic spike
+    // from exhausting the database rather than just queueing.
+    max: Number(process.env.PGPOOL_MAX ?? 5),
+    idleTimeoutMillis: 10_000,
+    connectionTimeoutMillis: 10_000,
   });
 
 if (process.env.NODE_ENV !== "production") {

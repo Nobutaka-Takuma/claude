@@ -7,7 +7,7 @@ Polymarket / みらいマーケット的な、労働（広告視聴・アンケ�
 ## 技術スタック
 
 - Next.js (App Router) / TypeScript / Tailwind CSS
-- Postgres（Supabase向けに書かれたスキーマ・RPC関数一式を、ローカルではSupabaseプロジェクトの代わりに素のPostgresへ直接適用して動かしています。本番でSupabaseプロジェクトを使う場合は`supabase/migrations/00000000000000_local_dev_auth_shim.sql`だけは適用しないでください — それ以外はSupabase CLIでそのまま`supabase db push`できます）
+- Postgres（Supabase向けに書かれたスキーマ・RPC関数一式を、ローカルではSupabaseプロジェクトの代わりに素のPostgresへ直接適用して動かしています。同じマイグレーション一式がSupabaseにもそのまま適用できます — ローカル専用の`00000000000000_local_dev_auth_shim.sql`はSupabaseを検出すると自動的に何もしないため、除外する操作は不要です）
 
 ## セットアップ（ローカル開発）
 
@@ -44,6 +44,15 @@ http://localhost:3000 を開くとアプリが動きます。
 - パスワード: `admin12345`
 
 一般ユーザーは `/signup` から自由に登録できます。
+
+### 一般公開する（Supabase + Vercel）
+
+手順は [`docs/DEPLOY.md`](./docs/DEPLOY.md) にまとめてあります。要点だけ:
+
+- 認証はアプリ自身が`app_users`テーブルで持っており、**Supabase Authは使いません**。Supabaseからは Postgres だけを使います
+- Vercelのアプリからは**Transaction pooler（6543）**、手元からのマイグレーションは**5432**、と接続先を使い分けます
+- `npm run migrate:prod` → `npm run bootstrap:prod`（金庫の初期資本＋管理者作成）の順に実行してからデプロイします。**金庫が空だと新規登録ボーナスが0ptになり、誰も何もできません**
+- `npm run seed` はデモ用データなので本番では実行しません
 
 ### 最新版に更新するとき
 
@@ -405,6 +414,8 @@ npm run dev
 - **通報者・作成者の累犯管理**：同じユーザーが繰り返し違反しても、アカウント単位の制限はありません
 - **多重アカウント対策**：メールアドレスのみで登録できるため、通報の閾値も賛成投票の閾値も多重登録で操作できます。公開時にはメール確認やレート制限が必要です
 - **問い合わせ窓口**：ガイドラインで「運営に連絡」と案内していますが、フォームは未実装です
+
+公開手順とあわせた公開前チェックリストは [`docs/DEPLOY.md`](./docs/DEPLOY.md) にあります。
 
 ## 次のステップ（未実装）
 

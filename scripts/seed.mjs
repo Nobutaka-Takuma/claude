@@ -19,7 +19,7 @@ async function main() {
 
 async function seedAdmin() {
   const email = "admin@example.com";
-  const exists = await pool.query("select id from auth.users where email = $1", [email]);
+  const exists = await pool.query("select id from app_users where email = $1", [email]);
   if (exists.rowCount > 0) {
     await pool.query("update profiles set role = 'admin' where id = $1", [exists.rows[0].id]);
     console.log(`admin already exists (${email}), role ensured`);
@@ -29,7 +29,7 @@ async function seedAdmin() {
   const passwordHash = await bcrypt.hash("admin12345", 10);
   const result = await pool.query(
     `with new_user as (
-       insert into auth.users (email, encrypted_password) values ($1, $2) returning id
+       insert into app_users (email, encrypted_password) values ($1, $2) returning id
      )
      insert into profiles (id, username, role)
      select id, 'admin', 'admin' from new_user
