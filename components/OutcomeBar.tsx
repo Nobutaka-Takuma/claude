@@ -16,7 +16,7 @@ const PALETTE = [
 
 export default function OutcomeBar({ pool }: { pool: PoolBreakdown }) {
   if (pool.total === 0) {
-    return <p className="text-xs text-ink-faint">まだベットがありません</p>;
+    return <p className="text-xs text-ink-faint">まだ予想がありません</p>;
   }
 
   return (

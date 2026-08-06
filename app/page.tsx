@@ -56,7 +56,7 @@ export default async function HomePage() {
           </h1>
           <p className="text-sm text-ink-muted mt-2">
             広告視聴やアンケートで貯めたポイントで予想に参加。気になる論点は自分でマーケットを作れて、
-            盛り上がればテラ銭の{creatorFeePct}%が報酬として入ります。
+            盛り上がれば手数料の{creatorFeePct}%が報酬として入ります。
           </p>
           <p className="text-xs text-accent-ink font-semibold mt-2">
             いま登録すると {formatPoints(1000)} からスタートできます。
@@ -74,7 +74,7 @@ export default async function HomePage() {
 
       {latestArticle && (
         <Link
-          href="/news"
+          href={`/news#news-${latestArticle.id}`}
           className="block rounded-xl border border-line bg-surface-2 p-4 hover:border-line-strong"
         >
           <span className="text-[10px] font-bold text-ink-faint">📰 最新ニュースから予測する</span>
@@ -137,7 +137,7 @@ export default async function HomePage() {
         href="/treasury"
         className="flex items-center justify-between rounded-xl border border-line bg-surface p-4 hover:border-line-strong"
       >
-        <span className="text-xs font-bold text-ink-muted">コミュニティ金庫(Treasury)</span>
+        <span className="text-xs font-bold text-ink-muted">コミュニティ金庫</span>
         <span className="font-mono-num text-lg font-extrabold text-accent-ink">
           {formatPoints(treasury.balance)}
         </span>

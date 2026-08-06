@@ -74,7 +74,7 @@ export default function SubmitResultForm({
     <section className="rounded-xl border border-gold/50 bg-gold-soft p-4 space-y-2">
       <h2 className="text-sm font-bold text-gold">この試合・お題の結果を報告する</h2>
       <p className="text-[11px] text-ink-muted">
-        ベットは締め切られましたが、まだ結果が確定していません。結果を知っている人が報告してください。
+        受付は締め切られましたが、まだ結果が確定していません。結果を知っている人が報告してください。
         報告後 {disputeWindowHours} 時間以内に異議が出なければ自動的に確定・精算されます。
         異議が出た場合はDAO投票で最終決定します。
       </p>

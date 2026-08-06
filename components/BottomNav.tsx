@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  { href: "/news", label: "ニュース" },
-  { href: "/", label: "ホーム" },
-  { href: "/tasks", label: "タスク" },
-  { href: "/markets", label: "マーケット" },
-  { href: "/mypage", label: "マイページ" },
+  { href: "/", label: "ホーム", icon: "🏠" },
+  { href: "/news", label: "ニュース", icon: "📰" },
+  { href: "/markets", label: "マーケット", icon: "📊" },
+  { href: "/tasks", label: "タスク", icon: "✅" },
+  { href: "/mypage", label: "マイページ", icon: "👤" },
 ];
 
 export default function BottomNav() {
@@ -28,6 +28,7 @@ export default function BottomNav() {
                 active ? "text-accent-ink font-bold" : "text-ink-faint"
               }`}
             >
+              <span className="block text-base leading-none mb-0.5">{item.icon}</span>
               {item.label}
             </Link>
           );

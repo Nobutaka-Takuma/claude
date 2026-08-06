@@ -294,7 +294,7 @@ export default function MarketForm({
 
       <label className="block space-y-1">
         <span className="text-xs text-ink-muted">
-          {marketKind === "match_winner" ? "キックオフ日時（ベット締切）" : "ベット締切日時"}
+          {marketKind === "match_winner" ? "キックオフ日時（受付締切）" : "予想の受付締切日時"}
         </span>
         <input
           required
@@ -351,9 +351,9 @@ export default function MarketForm({
 
       <p className="text-[11px] text-ink-faint">
         {mode === "admin"
-          ? `作成料はかかりません。初期賞金${seedAmount}ptは金庫（Treasury）が負担し、的中者に分配されます。運営が場を用意する立場なので、作成者報酬は受け取りません。`
+          ? `作成料はかかりません。初期賞金${seedAmount}ptはコミュニティ金庫が負担し、的中者に分配されます。運営が場を用意する立場なので、作成者報酬は受け取りません。`
           : mode === "paid"
-            ? `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初にベットする人も勝てば増えます。さらに精算時のテラ銭の${creatorFeePct}%があなたに支払われます。`
+            ? `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初に予想した人も勝てば増えます。さらに精算時の手数料の${creatorFeePct}%があなたに支払われます。`
             : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。初期賞金も作成者報酬もありません。`}
       </p>
     </form>

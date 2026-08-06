@@ -30,7 +30,10 @@ export default function NewsArticleCard({
   approvalThreshold: number;
 }) {
   return (
-    <article className="rounded-xl border border-line bg-surface overflow-hidden">
+    <article
+      id={`news-${article.id}`}
+      className="rounded-xl border border-line bg-surface overflow-hidden scroll-mt-20"
+    >
       <div className="p-4 space-y-2">
         <div className="flex items-center gap-2 text-[11px] text-ink-faint">
           <span>{categoryIcon(article.category)}</span>

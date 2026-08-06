@@ -8,7 +8,7 @@ export default function VoidMarketButton({ marketId }: { marketId: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   async function voidMarket() {
-    if (!confirm("この試合を中止し、全ベットを全額返金します。よろしいですか？")) return;
+    if (!confirm("このマーケットを中止し、すべての予想を全額返金します。よろしいですか？")) return;
     setSubmitting(true);
     const res = await fetch(`/api/markets/${marketId}/resolve`, {
       method: "POST",

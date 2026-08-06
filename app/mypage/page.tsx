@@ -1,30 +1,29 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
-import { getUserBets, getUserTreasuryLogs } from "@/lib/data";
+import { getUserBets, getUserTreasuryLogs, type TreasuryLogWithContext } from "@/lib/data";
 import { formatDateTime, formatPoints } from "@/lib/format";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
+import { userLedgerLabel } from "@/lib/ledgerLabels";
 import { BET_CANCEL_PENALTY } from "@/lib/config";
 import CancelBetButton from "@/components/CancelBetButton";
 
-const ENTRY_LABELS: Record<string, string> = {
-  task_reward: "タスク完了報酬",
-  bet_placed: "ベット",
-  bet_payout: "配当",
-  bet_refund: "返金",
-  treasury_grant: "運営付与",
-  signup_bonus: "🎁 新規登録ボーナス",
-  market_creation_fee: "マーケット作成",
-  creator_fee: "💰 マーケット作成者報酬",
-  bet_cancelled: "ベット取消（返金）",
-  resolution_bond: "判定の保証金",
-  resolution_bond_forfeited: "保証金の没収",
-  challenge_bond: "異議申立の保証金",
-  challenge_bond_forfeited: "保証金の没収",
-  bond_awarded: "🏅 保証金からの受取",
-  vote_reward: "🗳 投票報酬（先着）",
-  voter_rake_share: "🗳 投票報酬（テラ銭按分）",
-  adjustment: "補正",
-};
+// One line of context under each ledger entry, so "保証金 −100pt" says
+// which market it was for — and, for a bet, which side was backed.
+function logContext(log: TreasuryLogWithContext): string | null {
+  if (!log.market_title) return log.task_title;
+
+  const heading = marketHeading({
+    market_kind: log.market_kind ?? "binary",
+    title: log.market_title,
+    home_team: log.home_team,
+    away_team: log.away_team,
+  });
+
+  if (log.bet_outcome && log.outcome_options) {
+    return `${heading} ・「${outcomeLabel(log.outcome_options, log.bet_outcome)}」`;
+  }
+  return heading;
+}
 
 export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
   const params = await searchParams;
@@ -50,7 +49,8 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
       <div>
         <h1 className="text-lg font-extrabold">マイページ</h1>
         <p className="font-mono-num text-sm text-ink-muted mt-1">
-          保有ポイント: <span className="font-bold text-accent-ink">{formatPoints(profile.points_balance)}</span>
+          保有ポイント:{" "}
+          <span className="font-bold text-accent-ink">{formatPoints(profile.points_balance)}</span>
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
           href="/mypage?tab=bets"
           className={`px-3 py-1.5 rounded-full ${tab === "bets" ? "bg-accent text-white" : "border border-line-strong text-ink-muted"}`}
         >
-          ベット履歴
+          予想の履歴
         </Link>
         <Link
           href="/mypage?tab=points"
@@ -71,7 +71,7 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
 
       {tab === "bets" ? (
         bets.length === 0 ? (
-          <p className="text-xs text-ink-faint">まだベットはありません。</p>
+          <p className="text-xs text-ink-faint">まだ予想はありません。</p>
         ) : (
           <ul className="space-y-2">
             {bets.map((b) => (
@@ -81,26 +81,25 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
                   className="flex items-start justify-between gap-2 text-sm hover:underline"
                 >
                   <span>
-                    {marketHeading(b)} ・ {outcomeLabel(b.outcome_options, b.outcome)}に {formatPoints(b.amount)}
+                    {marketHeading(b)} ・ {outcomeLabel(b.outcome_options, b.outcome)}に{" "}
+                    {formatPoints(b.amount)}
                   </span>
                   <span className="font-mono-num font-semibold whitespace-nowrap">
                     {b.status === "active" && "結果待ち"}
-                    {b.status === "won" && <span className="text-accent-ink">的中 +{formatPoints(b.payout_amount)}</span>}
+                    {b.status === "won" && (
+                      <span className="text-accent-ink">的中 +{formatPoints(b.payout_amount)}</span>
+                    )}
                     {b.status === "lost" && <span className="text-ink-faint">不的中</span>}
                     {b.status === "refunded" && <span className="text-ink-faint">返金済み</span>}
                     {b.status === "void" && <span className="text-ink-faint">取消済み</span>}
                   </span>
                 </Link>
                 <p className="text-[11px] text-ink-faint">
-                  ベット締切 {formatDateTime(b.kickoff_time)} ・ 結果判定予定{" "}
+                  受付締切 {formatDateTime(b.kickoff_time)} ・ 結果判定の予定{" "}
                   {b.resolves_at ? formatDateTime(b.resolves_at) : "未設定"}
                 </p>
                 {b.status === "active" && b.status_market === "open" && (
-                  <CancelBetButton
-                    betId={b.id}
-                    amount={Number(b.amount)}
-                    penalty={BET_CANCEL_PENALTY()}
-                  />
+                  <CancelBetButton betId={b.id} amount={Number(b.amount)} penalty={BET_CANCEL_PENALTY()} />
                 )}
               </li>
             ))}
@@ -110,18 +109,49 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
         <p className="text-xs text-ink-faint">ポイントの動きはまだありません。</p>
       ) : (
         <ul className="space-y-1">
-          {logs.map((log) => (
-            <li key={log.id} className="flex items-center justify-between rounded-lg border border-line bg-surface px-3 py-2 text-sm">
-              <span>
-                {ENTRY_LABELS[log.entry_type] ?? log.entry_type}
-                <span className="block text-[11px] text-ink-faint">{formatDateTime(log.created_at)}</span>
-              </span>
-              <span className={`font-mono-num font-bold ${Number(log.points_delta) >= 0 ? "text-accent-ink" : "text-neg"}`}>
-                {Number(log.points_delta) >= 0 ? "+" : ""}
-                {formatPoints(log.points_delta)}
-              </span>
-            </li>
-          ))}
+          {logs.map((log) => {
+            const context = logContext(log);
+            const delta = Number(log.points_delta);
+            const row = (
+              <>
+                <span className="min-w-0">
+                  <span className="block">{userLedgerLabel(log.entry_type, delta)}</span>
+                  {context && <span className="block text-[11px] text-ink-muted truncate">{context}</span>}
+                  <span className="block text-[11px] text-ink-faint">{formatDateTime(log.created_at)}</span>
+                </span>
+                {/* A 0pt row is a record, not a movement — the points
+                    already left when the bond was posted. "+0pt" invites
+                    the reader to hunt for a number that isn't there. */}
+                {delta === 0 ? (
+                  <span className="font-mono-num text-ink-faint shrink-0">—</span>
+                ) : (
+                  <span
+                    className={`font-mono-num font-bold shrink-0 ${delta > 0 ? "text-accent-ink" : "text-neg"}`}
+                  >
+                    {delta > 0 ? "+" : ""}
+                    {formatPoints(delta)}
+                  </span>
+                )}
+              </>
+            );
+
+            return (
+              <li key={log.id}>
+                {log.market_id ? (
+                  <Link
+                    href={`/markets/${log.market_id}`}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2 text-sm hover:border-line-strong"
+                  >
+                    {row}
+                  </Link>
+                ) : (
+                  <div className="flex items-start justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2 text-sm">
+                    {row}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

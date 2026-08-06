@@ -30,7 +30,7 @@ export default function MarketFormTabs({
         >
           <span className="block text-xs font-bold">{creationCost}pt を支払う</span>
           <span className="block text-[10px] text-ink-muted mt-0.5">
-            即公開・テラ銭の{creatorFeePct}%を受け取る
+            即公開・手数料の{creatorFeePct}%を受け取る
           </span>
         </button>
         <button

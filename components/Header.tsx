@@ -1,14 +1,14 @@
 import Link from "next/link";
 import type { Profile } from "@/lib/types";
-import { formatPoints } from "@/lib/format";
 import LogoutButton from "@/components/LogoutButton";
+import PointsBadge from "@/components/PointsBadge";
 
 export default function Header({ profile }: { profile: Profile | null }) {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-surface/90 backdrop-blur">
       <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
         <Link href="/" className="font-extrabold text-sm tracking-tight shrink-0">
-          ⚽ Prediction DAO
+          🔮 みんなの予想DAO
         </Link>
 
         {profile ? (
@@ -16,9 +16,7 @@ export default function Header({ profile }: { profile: Profile | null }) {
             <span className="hidden sm:inline text-sm text-ink-muted truncate">
               {profile.username}
             </span>
-            <span className="font-mono-num text-xs font-semibold rounded-full bg-accent-soft text-accent-ink px-3 py-1">
-              {formatPoints(profile.points_balance)}
-            </span>
+            <PointsBadge initialBalance={Number(profile.points_balance)} />
             {profile.role === "admin" && (
               <Link
                 href="/admin"

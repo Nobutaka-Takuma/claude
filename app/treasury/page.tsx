@@ -1,22 +1,6 @@
 import { getTreasury, getTreasuryBreakdown, getRecentTreasuryLogs } from "@/lib/data";
 import { formatDateTime, formatPoints } from "@/lib/format";
-
-const ENTRY_LABELS: Record<string, string> = {
-  task_reward: "労働報酬（広告視聴・アンケート）",
-  rake_collected: "テラ銭（マーケット手数料）",
-  market_creation_fee: "マーケット作成料",
-  creator_fee: "マーケット作成者への分配（支出）",
-  signup_bonus: "新規登録ボーナス（支出）",
-  treasury_grant: "運営付与（支出）",
-  market_seed_payout: "初期賞金の払い出し（支出）",
-  resolution_bond: "判定の保証金",
-  challenge_bond: "異議申立の保証金",
-  bond_awarded: "保証金の受取（支出）",
-  vote_reward: "投票報酬（支出）",
-  voter_rake_share: "投票者へのテラ銭按分（支出）",
-  bet_cancelled: "ベット取消ペナルティ",
-  adjustment: "補正",
-};
+import { treasuryLedgerLabel, isRevenueEntry } from "@/lib/ledgerLabels";
 
 export default async function TreasuryPage() {
   const [treasury, breakdown, logs] = await Promise.all([
@@ -25,14 +9,23 @@ export default async function TreasuryPage() {
     getRecentTreasuryLogs(30),
   ]);
 
-  const total = breakdown.reduce((sum, b) => sum + Number(b.total), 0);
+  // Bonds and stakes flow through the treasury without belonging to it,
+  // and a hand-entered opening balance isn't income at all — counting
+  // either one turns the breakdown into a chart of custody.
+  const revenue = breakdown.filter((b) => isRevenueEntry(b.entry_type));
+  const total = revenue.reduce((sum, b) => sum + Number(b.total), 0);
+
+  // Rows where the treasury itself didn't move (a stake entering a pool,
+  // a bond being marked forfeited) are real ledger entries but read as
+  // noise here — every one of them shows ±0pt.
+  const movements = logs.filter((log) => Number(log.treasury_delta) !== 0);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-extrabold">コミュニティ金庫（Treasury）</h1>
+        <h1 className="text-lg font-extrabold">コミュニティ金庫</h1>
         <p className="text-xs text-ink-faint mt-1">
-          ユーザーの労働（広告視聴・アンケート）が生んだ価値と、マーケットのテラ銭がここに積み立てられます。
+          ユーザーの労働（広告視聴・アンケート）が生んだ価値と、マーケットの手数料がここに積み立てられます。
         </p>
       </div>
 
@@ -44,17 +37,20 @@ export default async function TreasuryPage() {
       </section>
 
       <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
-        <h2 className="text-sm font-bold">収益源の内訳（累計流入）</h2>
-        {breakdown.length === 0 ? (
+        <h2 className="text-sm font-bold">収益源の内訳（累計）</h2>
+        <p className="text-[11px] text-ink-faint">
+          保証金や予想の預かり金は、金庫を通過するだけで収益ではないため含めていません。
+        </p>
+        {revenue.length === 0 ? (
           <p className="text-xs text-ink-faint">まだ収益はありません。</p>
         ) : (
           <ul className="space-y-2">
-            {breakdown.map((b) => {
+            {revenue.map((b) => {
               const pct = total ? Math.round((Number(b.total) / total) * 100) : 0;
               return (
                 <li key={b.entry_type} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span>{ENTRY_LABELS[b.entry_type] ?? b.entry_type}</span>
+                    <span>{treasuryLedgerLabel(b.entry_type)}</span>
                     <span className="font-mono-num font-semibold">{pct}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
@@ -70,11 +66,13 @@ export default async function TreasuryPage() {
       <section className="rounded-xl border border-line bg-surface p-4 space-y-2">
         <h2 className="text-sm font-bold">直近のログ</h2>
         <ul className="divide-y divide-line">
-          {logs.map((log) => (
+          {movements.map((log) => (
             <li key={log.id} className="py-2 flex items-center justify-between text-xs">
               <span className="text-ink-muted">
-                {log.entry_type}
-                <span className="block text-[10px] text-ink-faint font-mono-num">{formatDateTime(log.created_at)}</span>
+                {treasuryLedgerLabel(log.entry_type, Number(log.treasury_delta))}
+                <span className="block text-[10px] text-ink-faint font-mono-num">
+                  {formatDateTime(log.created_at)}
+                </span>
               </span>
               <span className={`font-mono-num font-bold ${Number(log.treasury_delta) >= 0 ? "text-accent-ink" : "text-neg"}`}>
                 {Number(log.treasury_delta) >= 0 ? "+" : ""}

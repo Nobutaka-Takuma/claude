@@ -34,7 +34,7 @@ export default function EarlyResolutionForm({
       !confirm(
         `「${label}」で結果が確定したとして、早期確定を申請します。\n\n` +
           `・保証金 ${bond}pt を預けます\n` +
-          `・このマーケットのベットは直ちに締め切られます\n` +
+          `・このマーケットの受付は直ちに締め切られます\n` +
           `・${votingHours}時間のDAO投票で最終決定します\n` +
           `・投票で覆された場合、保証金は没収されます\n\nよろしいですか？`
       )
@@ -85,7 +85,7 @@ export default function EarlyResolutionForm({
         </button>
       </div>
       <p className="text-[11px] text-ink-muted">
-        すでに結果が判明している場合、保証金 {bond}pt を預けてベットを即時締め切り、
+        すでに結果が判明している場合、保証金 {bond}pt を預けて受付を即時締め切り、
         {votingHours}時間のDAO投票で結果を確定させられます。投票で覆された場合、保証金は没収され、
         その70%が異議側に渡ります。
         {!canAfford && (

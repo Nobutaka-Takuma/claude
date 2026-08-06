@@ -46,8 +46,8 @@ export default function MarketCard({ market, pools }: { market: Market; pools: M
           ) : pool.total === 0 ? (
             <p className="text-[11px] text-ink-faint">
               {seed > 0
-                ? `まだ誰もベットしていません — 初期賞金 ${formatPoints(seed)} を独占できます`
-                : "まだベットがありません — 最初の予想を入れてみましょう"}
+                ? `まだ誰も予想していません — 初期賞金 ${formatPoints(seed)} を独占できます`
+                : "まだ予想がありません — 最初の予想を入れてみましょう"}
             </p>
           ) : (
             <div className="space-y-1.5">

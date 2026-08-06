@@ -108,7 +108,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
 
         <dl className="mt-2 space-y-0.5 text-xs text-ink-faint">
           <div className="flex gap-2">
-            <dt className="w-20 shrink-0">ベット締切</dt>
+            <dt className="w-20 shrink-0">受付締切</dt>
             <dd>
               {formatDateTime(market.kickoff_time)}（{formatRelativeToNow(market.kickoff_time)}）
             </dd>
@@ -135,7 +135,10 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           </p>
           <p className="text-xs text-ink-muted line-clamp-3">{sourceArticle.body}</p>
           <div className="flex gap-3 pt-1">
-            <Link href="/news" className="text-[11px] text-accent-ink font-semibold">
+            <Link
+              href={`/news#news-${sourceArticle.id}`}
+              className="text-[11px] text-accent-ink font-semibold"
+            >
               ニュースフィードで見る &gt;
             </Link>
             {sourceArticle.url && (
@@ -164,7 +167,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
           </p>
         )}
         <p className="text-[11px] text-ink-faint">
-          的中者には賭けた分が全額戻り、さらに他の選択肢のプールから運営手数料(テラ銭){(market.rake_bps / 100).toFixed(0)}%を除いた分と初期賞金を山分けします。
+          的中者には賭けた分が全額戻り、さらに他の選択肢のプールから手数料{(market.rake_bps / 100).toFixed(0)}%を差し引いた分と初期賞金を山分けします。
         </p>
       </section>
 
@@ -219,7 +222,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
 
       {market.status === "open" && (
         <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
-          <h2 className="text-sm font-bold">ベットする</h2>
+          <h2 className="text-sm font-bold">予想する</h2>
           {profile ? (
             <BetForm
               marketId={market.id}
@@ -231,7 +234,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             />
           ) : (
             <p className="text-xs text-ink-muted">
-              ベットするには
+              予想するには
               <Link href="/login" className="text-accent-ink font-semibold mx-1">
                 ログイン
               </Link>
@@ -239,7 +242,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             </p>
           )}
           <p className="text-[11px] text-neg">
-            ⚠ 締切後は自動的にベット不可になります。ひとつのマーケットでは1つの選択肢にのみベットできます。
+            ⚠ 締切を過ぎると自動的に受付が終了します。ひとつのマーケットで予想できる選択肢は1つだけです。
           </p>
           {profile && (
             <div className="pt-2 border-t border-line">
@@ -262,7 +265,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
 
       {myBets.length > 0 && (
         <section className="rounded-xl border border-line bg-surface p-4 space-y-2">
-          <h2 className="text-sm font-bold">自分のベット</h2>
+          <h2 className="text-sm font-bold">自分の予想</h2>
           <ul className="space-y-2 text-sm">
             {myBets.map((b) => (
               <li key={b.id} className="space-y-0.5">
@@ -320,7 +323,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
               <OutcomeBar pool={votePool} />
               <p className="text-[11px] text-ink-muted">
                 正解の選択肢に投票すると、先着{VOTE_REWARD_SLOTS()}名に{VOTE_FLAT_REWARD()}pt、
-                さらに正解者全員でテラ銭の{VOTER_RAKE_SHARE_BPS() / 100}%を按分して受け取れます。
+                さらに正解者全員で手数料の{VOTER_RAKE_SHARE_BPS() / 100}%を分け合えます。
                 （現在の投票数: {voteTotal}票）
               </p>
               <ChallengeVoteButtons challengeId={openChallenge.id} outcomeOptions={market.outcome_options} />

@@ -45,7 +45,7 @@ export default async function TasksPage() {
     <div className="space-y-6">
       <h1 className="text-lg font-extrabold">タスクセンター</h1>
       <p className="text-xs text-ink-faint">
-        完了すると自動でポイントが付与され、同時に金庫(Treasury)にも積み立てられます。
+        完了すると自動でポイントが付与され、同じ額がコミュニティ金庫にも積み立てられます。
       </p>
 
       {resolutionTasks.length > 0 && (
@@ -80,7 +80,7 @@ export default async function TasksPage() {
           <h2 className="text-sm font-bold">🗳 結果確定の投票</h2>
           <p className="text-[11px] text-ink-faint">
             正解の選択肢に投票すると先着{VOTE_REWARD_SLOTS()}名に{VOTE_FLAT_REWARD()}pt、
-            さらに正解者全員でテラ銭の{VOTER_RAKE_SHARE_BPS() / 100}%を按分して受け取れます。
+            さらに正解者全員で手数料の{VOTER_RAKE_SHARE_BPS() / 100}%を分け合えます。
           </p>
           {votingTasks.map((t) => (
             <Link

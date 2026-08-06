@@ -68,7 +68,7 @@ export default function BetForm({
         router.push("/login");
         return;
       }
-      setError(apiErrorMessage(body.error, "ベットに失敗しました", body.detail));
+      setError(apiErrorMessage(body.error, "予想を確定できませんでした。", body.detail));
       setSubmitting(null);
       return;
     }
@@ -192,7 +192,7 @@ export default function BetForm({
         disabled={submitting !== null || amount <= 0 || amount > maxAmount || !outcome}
         className="w-full rounded-lg bg-gold text-white font-bold text-sm py-2.5 disabled:opacity-40"
       >
-        {submitting ? "送信中…" : "ベットを確定する"}
+        {submitting ? "送信中…" : "この予想で確定する"}
       </button>
     </form>
   );

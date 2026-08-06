@@ -51,7 +51,7 @@ export default function CreateMarketFromNews({
         </button>
         <p className="text-[10px] text-ink-faint">
           {affordable
-            ? `テラ銭の${creatorFeePct}%が作成者のあなたに入ります`
+            ? `手数料の${creatorFeePct}%が作成者のあなたに入ります`
             : `作成には${creationCost}pt必要です（保有 ${balance.toLocaleString("ja-JP")}pt）`}
         </p>
       </div>

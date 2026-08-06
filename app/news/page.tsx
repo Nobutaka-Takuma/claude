@@ -35,7 +35,7 @@ export default async function NewsPage() {
         </div>
         <p className="text-xs text-ink-faint mt-1">
           ニュースを読んで、その場で予想に参加。気になる論点があればあなたがマーケットを作れます（{creationCost}pt）。
-          あなたのマーケットが盛り上がるほど、テラ銭の{creatorFeePct}%が報酬として入ります。
+          あなたのマーケットが盛り上がるほど、手数料の{creatorFeePct}%が報酬として入ります。
         </p>
       </div>
 

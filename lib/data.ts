@@ -278,9 +278,40 @@ export async function getUserBets(userId: string): Promise<BetWithMarket[]> {
   return result.rows;
 }
 
-export async function getUserTreasuryLogs(userId: string): Promise<TreasuryLog[]> {
-  const result = await query<TreasuryLog>(
-    "select * from treasury_logs where user_id = $1 order by created_at desc limit 50",
+export type TreasuryLogWithContext = TreasuryLog & {
+  market_id: string | null;
+  market_title: string | null;
+  home_team: string | null;
+  away_team: string | null;
+  market_kind: Market["market_kind"] | null;
+  outcome_options: Market["outcome_options"] | null;
+  bet_outcome: string | null;
+  task_title: string | null;
+};
+
+// A row saying "結果報告の保証金 −100pt" with nothing else on it is a
+// receipt with the shop name torn off. Every entry points at either a
+// market, a bet (which belongs to a market), or a task, so resolve that
+// reference here and let the history name what the movement was about.
+export async function getUserTreasuryLogs(userId: string): Promise<TreasuryLogWithContext[]> {
+  const result = await query<TreasuryLogWithContext>(
+    `select l.*,
+            coalesce(mk.id, bm.id) as market_id,
+            coalesce(mk.title, bm.title) as market_title,
+            coalesce(mk.home_team, bm.home_team) as home_team,
+            coalesce(mk.away_team, bm.away_team) as away_team,
+            coalesce(mk.market_kind, bm.market_kind) as market_kind,
+            coalesce(mk.outcome_options, bm.outcome_options) as outcome_options,
+            b.outcome as bet_outcome,
+            t.title as task_title
+     from treasury_logs l
+     left join markets mk on l.ref_table = 'markets' and mk.id = l.ref_id
+     left join bets b on l.ref_table = 'bets' and b.id = l.ref_id
+     left join markets bm on bm.id = b.market_id
+     left join tasks t on l.ref_table = 'tasks' and t.id = l.ref_id
+     where l.user_id = $1
+     order by l.created_at desc
+     limit 50`,
     [userId]
   );
   return result.rows;

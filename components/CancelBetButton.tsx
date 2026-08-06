@@ -22,7 +22,7 @@ export default function CancelBetButton({
   async function cancel() {
     if (
       !confirm(
-        `このベット（${amount.toLocaleString("ja-JP")}pt）を取り消します。\n` +
+        `この予想（${amount.toLocaleString("ja-JP")}pt）を取り消します。\n` +
           `ペナルティ ${penalty}pt を差し引いた ${refund.toLocaleString("ja-JP")}pt が返却されます。\nよろしいですか？`
       )
     ) {

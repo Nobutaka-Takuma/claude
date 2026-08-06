@@ -29,7 +29,7 @@ export default function AdminMarketForm({ seedAmount }: { seedAmount: number }) 
         </button>
       </div>
       <p className="text-[11px] text-ink-muted">
-        作成料はかかりません。初期賞金 {seedAmount}pt は金庫が負担するので、公開直後から的中者に配当が出ます。
+        作成料はかかりません。初期賞金 {seedAmount}pt はコミュニティ金庫が負担するので、公開直後から的中者に配当が出ます。
       </p>
       <MarketForm
         mode="admin"
