@@ -12,7 +12,7 @@ import {
   hasReportedMarket,
 } from "@/lib/data";
 import { categoryIcon, categoryLabel } from "@/lib/categories";
-import { formatDateTime, formatPoints, formatRelativeToNow } from "@/lib/format";
+import { formatDateTime, formatPoints, formatRelativeToNow, isPast } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import {
@@ -63,6 +63,13 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
   const reportable =
     market.banned_at === null &&
     ["proposed", "open", "locked", "pending_resolution", "disputed"].includes(market.status);
+
+  // Cancelling is only allowed while the market is still taking bets.
+  // Checked against kickoff_time rather than the stored status alone: the
+  // status is moved to 'locked' by a lazy sweep, so between the deadline
+  // and the next sweep it can still say 'open'. The RPC enforces the same
+  // rule, so this only decides whether the button is worth showing.
+  const bettingOpen = market.status === "open" && !isPast(market.kickoff_time);
 
   const disputable = market.status === "pending_resolution" || market.status === "disputed";
   const challenges = disputable ? await getChallengesForMarket(marketId) : [];
@@ -245,7 +252,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </section>
       )}
 
-      {market.status === "open" && (
+      {bettingOpen && (
         <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
           <h2 className="text-sm font-bold">予想する</h2>
           {profile ? (
@@ -306,7 +313,7 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
                     {b.status === "void" && `取消済み（返金 ${formatPoints(b.payout_amount)}）`}
                   </span>
                 </div>
-                {b.status === "active" && market.status === "open" && (
+                {b.status === "active" && bettingOpen && (
                   <CancelBetButton
                     betId={b.id}
                     amount={Number(b.amount)}

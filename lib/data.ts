@@ -266,6 +266,10 @@ export type BetWithMarket = Bet & {
 };
 
 export async function getUserBets(userId: string): Promise<BetWithMarket[]> {
+  // Sweep first: without it a market whose kickoff has passed still reads
+  // as 'open' here until some other page happens to lock it, and this
+  // page decides whether to offer the cancel button.
+  await tickMarketLifecycle();
   const result = await query<BetWithMarket>(
     `select b.*, m.title, m.home_team, m.away_team, m.status as status_market,
             m.market_kind, m.outcome_options, m.resolves_at, m.kickoff_time

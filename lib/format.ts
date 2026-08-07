@@ -44,6 +44,11 @@ export function formatRelativeToNow(value: string | Date): string {
   return diffMs >= 0 ? `あと${text}` : `${text}前`;
 }
 
+export function isPast(value: string | Date | null | undefined): boolean {
+  if (!value) return false;
+  return new Date(value).getTime() <= Date.now();
+}
+
 // How far ahead of UTC the app's zone is at a given instant.
 function zoneOffsetMinutes(at: Date): number {
   const parts = new Intl.DateTimeFormat("en-US", {

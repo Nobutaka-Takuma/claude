@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
 import { getUserBets, getUserTreasuryLogs, type TreasuryLogWithContext } from "@/lib/data";
-import { formatDateTime, formatPoints } from "@/lib/format";
+import { formatDateTime, formatPoints, isPast } from "@/lib/format";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import { userLedgerLabel } from "@/lib/ledgerLabels";
 import { BET_CANCEL_PENALTY } from "@/lib/config";
@@ -98,7 +98,10 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
                   受付締切 {formatDateTime(b.kickoff_time)} ・ 結果判定の予定{" "}
                   {b.resolves_at ? formatDateTime(b.resolves_at) : "未設定"}
                 </p>
-                {b.status === "active" && b.status_market === "open" && (
+                {/* Only while the market is still taking bets. Once the
+                    deadline passes a prediction is locked in — being able
+                    to withdraw after that is a free look at the outcome. */}
+                {b.status === "active" && b.status_market === "open" && !isPast(b.kickoff_time) && (
                   <CancelBetButton betId={b.id} amount={Number(b.amount)} penalty={BET_CANCEL_PENALTY()} />
                 )}
               </li>
