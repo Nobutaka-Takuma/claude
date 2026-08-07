@@ -4,6 +4,7 @@ import { getSessionUserId } from "@/lib/session";
 import { proposeMarket } from "@/lib/rpc";
 import { rpcErrorResponse } from "@/lib/apiError";
 import { checkMarketContent } from "@/lib/contentPolicy";
+import { parseAppLocalDateTime } from "@/lib/format";
 
 const bodySchema = z
   .object({
@@ -65,8 +66,8 @@ export async function POST(req: Request) {
       userId,
       title: parsed.data.title,
       marketKind: parsed.data.marketKind,
-      kickoffTime: new Date(parsed.data.kickoffTime).toISOString(),
-      resolvesAt: new Date(parsed.data.resolvesAt).toISOString(),
+      kickoffTime: parseAppLocalDateTime(parsed.data.kickoffTime).toISOString(),
+      resolvesAt: parseAppLocalDateTime(parsed.data.resolvesAt).toISOString(),
       league: parsed.data.league ?? null,
       matchweek: parsed.data.matchweek ?? null,
       outcomeOptions: parsed.data.outcomeOptions ?? [],

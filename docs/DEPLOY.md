@@ -8,6 +8,8 @@
 
 **このアプリはSupabase Authを使いません。** 認証はアプリ自身が`app_users`テーブルで持っています（メール＋bcryptハッシュ＋署名付きCookie）。Supabaseからは**Postgresだけ**を使います。ダッシュボードの Authentication タブは触りません。
 
+**時刻はすべて日本時間で扱われます。** Vercelのサーバーは世界協定時（UTC）で動くため、日時の表示と入力の解釈をアプリ側で`Asia/Tokyo`に固定しています（`lib/format.ts`）。設定は不要です。
+
 **ポイントは換金できません。** 現金・暗号資産との交換手段を持たない設計です。公開時にこの性質が変わらないようご注意ください（`/guidelines`にも明記しています）。
 
 ---
@@ -195,3 +197,25 @@ DATABASE_URL="postgresql://...:5432/postgres" npm run migrate:prod
 | 新規登録しても0pt | 金庫が空。`npm run bootstrap:prod` |
 | ログインしてもすぐ切れる | `SESSION_SECRET`がデプロイごとに変わっている（未設定だとビルドが失敗するはずですが、値の再生成にも注意） |
 | Cronが動かない | Hobbyプランの1日1回制限。`vercel.json`を日次に |
+| 日時が9時間ずれる | 2026-08-06以前のデプロイで作られたマーケットのみ該当します。当時はサーバーのUTCで入力を解釈していたため、締切が9時間後ろにずれて保存されています。下記のSQLで確認・修正できます |
+
+### 9時間ずれたマーケットの修正（該当する場合のみ）
+
+タイムゾーン対応より前にVercel上で作成したマーケットは、締切と判定予定が9時間後ろにずれています。まず確認してください。
+
+```sql
+select id, title, kickoff_time, resolves_at, created_at
+from markets
+order by created_at desc;
+```
+
+意図した時刻より9時間後ろになっているものがあれば、そのIDを指定して戻します。
+
+```sql
+update markets
+   set kickoff_time = kickoff_time - interval '9 hours',
+       resolves_at  = resolves_at  - interval '9 hours'
+ where id in ('ここにID', '...');
+```
+
+件数が少なければ、そのマーケットを中止（`/admin`から）して作り直すほうが確実です。

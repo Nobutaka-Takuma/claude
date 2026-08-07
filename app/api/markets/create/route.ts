@@ -4,6 +4,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import { createMarket } from "@/lib/rpc";
 import { rpcErrorResponse } from "@/lib/apiError";
 import { checkMarketContent } from "@/lib/contentPolicy";
+import { parseAppLocalDateTime } from "@/lib/format";
 import {
   ADMIN_MARKET_SEED,
   MARKET_CREATION_COST,
@@ -97,8 +98,8 @@ export async function POST(req: Request) {
       userId: profile.id,
       title: parsed.data.title,
       marketKind: parsed.data.marketKind,
-      closesAt: new Date(parsed.data.closesAt).toISOString(),
-      resolvesAt: new Date(parsed.data.resolvesAt).toISOString(),
+      closesAt: parseAppLocalDateTime(parsed.data.closesAt).toISOString(),
+      resolvesAt: parseAppLocalDateTime(parsed.data.resolvesAt).toISOString(),
       outcomeOptions: parsed.data.outcomeOptions ?? [],
       description: parsed.data.description ?? null,
       category: parsed.data.category ?? "general",
