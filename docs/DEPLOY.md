@@ -126,6 +126,15 @@ Vercelのプロジェクト設定 → **Environment Variables**。Production / P
 
 ニュース取り込みのフィードを変えたい場合のみ `NEWS_FEEDS` を設定します。
 
+**近日中の試合からマーケットを自動生成する場合**は、次の2つを設定します（リーグIDは手元で `npm run sports-leagues -- Japan Soccer` を実行して調べてください）。
+
+| 変数 | 値 |
+|---|---|
+| `SPORTS_API_PROVIDER` | `thesportsdb` |
+| `SPORTSDB_LEAGUES` | `[{"id":"4363","name":"J1リーグ","category":"soccer"}]` のようなJSON |
+
+無料の公開テストキーは強いレート制限があるので、継続運用するなら [thesportsdb.com](https://www.thesportsdb.com/) で無料キーを取得して `SPORTSDB_KEY` に設定してください。
+
 ### 2-3. デプロイ
 
 **Deploy** を押します。2〜3分でビルドが終わり、`https://＜プロジェクト名＞.vercel.app` が発行されます。
@@ -150,8 +159,10 @@ Vercelのプロジェクト設定 → **Environment Variables**。Production / P
 
 | パス | 間隔 | 役割 |
 |---|---|---|
-| `/api/cron/tick` | 毎時 | 締切のロックと、異議申し立て期間が過ぎたマーケットの精算 |
-| `/api/news/sync` | 毎時30分 | RSSからのニュース取り込み |
+| `/api/cron/tick` | 日次 | 締切のロック、異議申し立て期間が過ぎたマーケットの精算、**近日中の試合からのマーケット自動生成** |
+| `/api/news/sync` | 日次 | RSSからのニュース取り込み |
+
+試合の自動生成に別のCron枠は使っていません（無料プランはCron数が限られるため、精算処理と同じ枠に相乗りさせています）。`SPORTS_API_PROVIDER`が`mock`以外に設定されているときだけ動き、取り込みに失敗しても精算処理は成功したまま、理由だけがレスポンスに載ります。
 
 どちらも`CRON_SECRET`で保護されており、Vercelが`Authorization: Bearer`ヘッダを付けて呼びます。
 
