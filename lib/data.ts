@@ -155,6 +155,46 @@ export async function getUserPendingSubmissions(userId: string, limit = 20) {
   return result.rows;
 }
 
+// --- お問い合わせ ---------------------------------------------------------
+
+export interface ContactMessage {
+  id: string;
+  user_id: string | null;
+  username: string | null;
+  name: string;
+  email: string;
+  category: string;
+  body: string;
+  status: "new" | "in_progress" | "closed";
+  handler_note: string | null;
+  handled_at: string | null;
+  created_at: string;
+}
+
+// 未対応・対応中を先に、対応済みは直近だけ。開いた瞬間に「今なにが
+// 放置されているか」が見えないと、受信箱は見られなくなる。
+export async function getContactMessages(limit = 50): Promise<ContactMessage[]> {
+  const result = await query<ContactMessage>(
+    `select m.id, m.user_id, p.username, m.name, m.email, m.category, m.body,
+            m.status, m.handler_note, m.handled_at, m.created_at
+     from contact_messages m
+     left join profiles p on p.id = m.user_id
+     where m.status <> 'closed' or m.created_at > now() - interval '30 days'
+     order by case m.status when 'new' then 0 when 'in_progress' then 1 else 2 end,
+              m.created_at desc
+     limit $1`,
+    [limit]
+  );
+  return result.rows;
+}
+
+export async function getOpenContactCount(): Promise<number> {
+  const result = await query<{ count: string }>(
+    "select count(*) as count from contact_messages where status = 'new'"
+  );
+  return Number(result.rows[0].count);
+}
+
 // --- スポンサー・案件 -----------------------------------------------------
 
 export async function getSponsors(): Promise<Sponsor[]> {

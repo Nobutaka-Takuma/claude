@@ -68,6 +68,9 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   already_paid: "この提出には既に報酬が支払われています。",
   not_authorized: "この操作を行う権限がありません。",
   missing_required_fields: "必須項目が未入力です。",
+  too_many_requests:
+    "短時間に送信が集中しています。しばらく時間をおいてからもう一度お試しください。",
+  message_not_found: "対象のお問い合わせが見つかりません。",
   // server_error is deliberately NOT mapped: it always arrives with a
   // `detail`, and a generic "サーバーエラーです" would hide the one part
   // of the response that says what actually broke.
@@ -100,6 +103,9 @@ export const FIELD_ERROR_MESSAGES: Record<string, string> = {
   outcome: "選択肢が正しく選ばれていません。",
   amount: "金額を正しく入力してください。",
   reason: "理由を入力してください。",
+  email: "メールアドレスを正しい形式で入力してください。",
+  body: "本文は10文字以上4000文字以内で入力してください。",
+  name: "お名前を入力してください。",
 };
 
 // Falls back to naming the offending fields rather than returning null:

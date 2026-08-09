@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
-import { listMarkets, getProposedMarkets, getReportedMarkets } from "@/lib/data";
+import {
+  listMarkets,
+  getProposedMarkets,
+  getReportedMarkets,
+  getContactMessages,
+} from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { contactCategoryLabel } from "@/lib/contactCategories";
+import ContactStatusButtons from "@/components/ContactStatusButtons";
 import { marketHeading } from "@/lib/outcome";
 import StatusBadge from "@/components/StatusBadge";
 import AdminMarketForm from "@/components/AdminMarketForm";
@@ -17,7 +24,7 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [settleable, proposed, reported] = await Promise.all([
+  const [settleable, proposed, reported, contacts] = await Promise.all([
     Promise.all([
       listMarkets("locked"),
       listMarkets("pending_resolution"),
@@ -25,7 +32,10 @@ export default async function AdminPage() {
     ]).then((groups) => groups.flat()),
     getProposedMarkets(),
     getReportedMarkets(),
+    getContactMessages(),
   ]);
+
+  const openContacts = contacts.filter((c) => c.status !== "closed");
 
   return (
     <div className="space-y-6">
@@ -58,6 +68,48 @@ export default async function AdminPage() {
                   {m.categories.map((c) => reportCategoryLabel(c)).join(" / ")}
                 </p>
                 <ModerateMarketButtons marketId={m.id} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-bold">✉️ お問い合わせ（未対応 {openContacts.length}件）</h2>
+        {contacts.length === 0 ? (
+          <p className="text-xs text-ink-faint">お問い合わせはありません。</p>
+        ) : (
+          <ul className="space-y-2">
+            {contacts.map((m) => (
+              <li
+                key={m.id}
+                className={`rounded-xl border p-3 space-y-2 ${
+                  m.status === "new"
+                    ? "border-gold/50 bg-gold-soft"
+                    : m.status === "in_progress"
+                      ? "border-line bg-surface"
+                      : "border-line bg-surface-2 opacity-70"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold">{contactCategoryLabel(m.category)}</span>
+                  <span className="text-[11px] font-bold text-ink-faint">
+                    {m.status === "new" ? "未対応" : m.status === "in_progress" ? "対応中" : "対応済み"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-faint">
+                  {m.name}
+                  {m.username && `（@${m.username}）`} ・ {m.email} ・ {formatDateTime(m.created_at)}
+                </p>
+                <p className="text-xs whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-2">
+                  {m.body}
+                </p>
+                {m.handler_note && (
+                  <p className="text-[11px] text-ink-muted">対応メモ: {m.handler_note}</p>
+                )}
+                {m.status !== "closed" && (
+                  <ContactStatusButtons messageId={m.id} status={m.status} />
+                )}
               </li>
             ))}
           </ul>
