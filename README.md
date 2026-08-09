@@ -282,19 +282,31 @@ npm run sync-news -- --watch 15  # 15分間隔
 npm run sports-leagues -- Japan Soccer
 npm run sports-leagues -- Japan Baseball
 
-#   id=4363  Japanese J1 League
-#   ...
-
 # 結果が0件のときは、APIが何を返したかをそのまま表示できます
 npm run sports-leagues -- Japan Soccer --raw
+```
 
-# 2. .env.local に設定
+確認できたIDの例（2026年8月時点）:
+
+| id | リーグ | category |
+|---|---|---|
+| 4633 | Japanese J1 League（J1リーグ） | `soccer` |
+| 4824 | Japanese J2 League | `soccer` |
+| 4967 | Japanese J3 League | `soccer` |
+| 5637 | Japan Emperors Cup（天皇杯） | `soccer` |
+| 5826 | Japan Football League（JFL） | `soccer` |
+| 4591 | Nippon Baseball League（NPB） | `baseball` |
+
+```bash
+# 2. .env.local に設定（J1リーグ＋天皇杯の例）
 #   SPORTS_API_PROVIDER=thesportsdb
-#   SPORTSDB_LEAGUES=[{"id":"4363","name":"J1リーグ","category":"soccer"}]
+#   SPORTSDB_LEAGUES=[{"id":"4633","name":"J1リーグ","category":"soccer"},{"id":"5637","name":"天皇杯","category":"soccer"}]
 
 # 3. 取り込む
 npm run sync-fixtures
 ```
+
+> `SPORTSDB_LEAGUES`の値は**クォートで囲まないでください**。`[`で始まる1行としてそのまま書きます。`name`は画面表示用なので日本語に書き換えて構いません。
 
 複数リーグを同時に扱えます。`category`は`lib/categories.ts`のキー（`soccer` / `baseball` / `sports_other` など）で、一覧のアイコンと絞り込みに反映されます。
 

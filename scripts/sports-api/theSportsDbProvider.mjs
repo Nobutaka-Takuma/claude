@@ -16,7 +16,7 @@
 //   SPORTSDB_KEY=...            optional. Defaults to the public free key,
 //                               which is all this needs; set your own only
 //                               if you have a Premium key.
-//   SPORTSDB_LEAGUES=[{"id":"4363","name":"J1リーグ","category":"soccer"}]
+//   SPORTSDB_LEAGUES=[{"id":"4633","name":"J1リーグ","category":"soccer"},{"id":"5637","name":"天皇杯","category":"soccer"}]
 //
 // League IDs are not guessable and do get renumbered, so don't take any
 // from a blog post. Run the built-in lookup instead:
@@ -49,7 +49,7 @@ export function getConfiguredLeagues() {
   } catch {
     throw new Error(
       `SPORTSDB_LEAGUES is not valid JSON. Expected e.g. ` +
-        `[{"id":"4363","name":"J1リーグ","category":"soccer"}]`
+        `[{"id":"4633","name":"J1リーグ","category":"soccer"}]`
     );
   }
   if (!Array.isArray(parsed)) throw new Error("SPORTSDB_LEAGUES must be a JSON array.");
@@ -159,7 +159,7 @@ export const theSportsDbProvider = {
       throw new Error(
         "SPORTSDB_LEAGUES is not set, so there is nothing to fetch. Find the IDs with " +
           '`npm run sports-leagues -- Japan Soccer` and set e.g. ' +
-          'SPORTSDB_LEAGUES=[{"id":"4363","name":"J1リーグ","category":"soccer"}]'
+          'SPORTSDB_LEAGUES=[{"id":"4633","name":"J1リーグ","category":"soccer"}]'
       );
     }
 

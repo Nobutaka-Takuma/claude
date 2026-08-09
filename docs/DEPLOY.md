@@ -131,7 +131,7 @@ Vercelのプロジェクト設定 → **Environment Variables**。Production / P
 | 変数 | 値 |
 |---|---|
 | `SPORTS_API_PROVIDER` | `thesportsdb` |
-| `SPORTSDB_LEAGUES` | `[{"id":"4363","name":"J1リーグ","category":"soccer"}]` のようなJSON |
+| `SPORTSDB_LEAGUES` | `[{"id":"4633","name":"J1リーグ","category":"soccer"},{"id":"5637","name":"天皇杯","category":"soccer"}]` のようなJSON（J1リーグ＋天皇杯の例） |
 
 `SPORTSDB_KEY`の設定は不要です（TheSportsDBが公開している共有の無料キーを自動で使います）。Premiumキーをお持ちの場合のみ設定してください。
 

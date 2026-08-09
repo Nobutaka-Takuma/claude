@@ -6,7 +6,7 @@
 //   npm run sports-leagues -- Japan Soccer --raw    (dump the API response)
 //
 // Paste the ids you want into SPORTSDB_LEAGUES, e.g.
-//   SPORTSDB_LEAGUES=[{"id":"4363","name":"J1リーグ","category":"soccer"}]
+//   SPORTSDB_LEAGUES=[{"id":"4633","name":"J1リーグ","category":"soccer"}]
 import { searchLeagues, apiKey, rawLookup } from "./sports-api/theSportsDbProvider.mjs";
 
 const args = process.argv.slice(2).filter((a) => a !== "--raw");
