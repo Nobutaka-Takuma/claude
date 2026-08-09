@@ -51,6 +51,23 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   task_not_started: "このタスクはまだ開始されていません。",
   task_ended: "このタスクは終了しました。",
   completion_limit_reached: "このタスクの実行回数が上限に達しています。",
+  task_quota_exhausted: "このタスクは募集件数に達しました。",
+  cooldown_active: "このタスクは間隔をあけてから再度実行できます。しばらくしてからお試しください。",
+  campaign_not_found: "この案件が見つかりません。",
+  campaign_not_active: "この案件は現在受付を停止しています。",
+  campaign_not_started: "この案件はまだ開始されていません。",
+  campaign_ended: "この案件は終了しました。",
+  campaign_quota_exhausted: "この案件は募集件数に達しました。",
+  campaign_budget_exhausted: "この案件の予算上限に達しました。",
+  task_requires_review: "このタスクは検収が必要です。提出フォームから送信してください。",
+  completion_not_found: "対象の提出が見つかりません。",
+  completion_not_pending: "この提出は既に検収済みです。",
+  cannot_review_own_work: "自分の提出はチェックできません。",
+  not_peer_reviewed: "このタスクは相互チェックの対象ではありません。",
+  already_reviewed: "この提出は既にチェック済みです。",
+  already_paid: "この提出には既に報酬が支払われています。",
+  not_authorized: "この操作を行う権限がありません。",
+  missing_required_fields: "必須項目が未入力です。",
   // server_error is deliberately NOT mapped: it always arrives with a
   // `detail`, and a generic "サーバーエラーです" would hide the one part
   // of the response that says what actually broke.

@@ -3,15 +3,20 @@ import { syncMarketStatus, finalizeExpiredMarkets } from "./rpc";
 import { BOND_AWARD_BPS, RESOLUTION_REWARD } from "./config";
 import type {
   Bet,
+  Campaign,
+  CampaignEconomics,
   Challenge,
   Comment,
   Market,
   MarketPool,
   NewsArticle,
   NewsFeedItem,
+  Sponsor,
   Task,
+  TaskCompletion,
   Treasury,
   TreasuryLog,
+  VerificationMode,
   Vote,
 } from "./types";
 
@@ -20,26 +25,173 @@ export async function getTreasury(): Promise<Treasury> {
   return result.rows[0];
 }
 
+// Tasks a user could actually start right now.
+//
+// A task whose campaign has been paused, whose window has closed, or whose
+// total quota is full is worse than useless on the list: the user fills in
+// the form, submits, and gets an error. The checks submit_task_work makes
+// are mirrored here so those tasks simply don't appear.
 export async function getActiveTasks(): Promise<Task[]> {
   const result = await query<Task>(
-    `select * from tasks
-     where is_active
-       and (starts_at is null or starts_at <= now())
-       and (ends_at is null or ends_at >= now())
-     order by type, reward_points desc`
+    `select t.*
+     from tasks t
+     left join campaigns c on c.id = t.campaign_id
+     where t.is_active
+       and (t.starts_at is null or t.starts_at <= now())
+       and (t.ends_at is null or t.ends_at >= now())
+       and (
+         t.campaign_id is null
+         or (
+           c.status = 'active'
+           and (c.starts_at is null or c.starts_at <= now())
+           and (c.ends_at is null or c.ends_at >= now())
+         )
+       )
+       and (
+         t.max_completions_total is null
+         or (
+           select count(*) from task_completions tc
+           where tc.task_id = t.id and tc.status in ('verified', 'pending')
+         ) < t.max_completions_total
+       )
+     order by t.type, t.reward_points desc`
   );
   return result.rows;
 }
 
+// Counts pending alongside verified: while a submission is under review
+// the user has already used that slot up, and showing "残り 1/1" next to a
+// submission the RPC will refuse is just a promise the app can't keep.
 export async function getUserVerifiedCompletionCounts(userId: string): Promise<Record<string, number>> {
   const result = await query<{ task_id: string; count: string }>(
     `select task_id, count(*) as count
      from task_completions
-     where user_id = $1 and status = 'verified'
+     where user_id = $1 and status in ('verified', 'pending')
      group by task_id`,
     [userId]
   );
   return Object.fromEntries(result.rows.map((r) => [r.task_id, Number(r.count)]));
+}
+
+// --- マイクロワークの検収キュー -------------------------------------------
+
+export type PendingCompletion = TaskCompletion & {
+  task_title: string;
+  work_kind: string | null;
+  verification_mode: VerificationMode;
+  quorum_size: number;
+  review_reward_points: string;
+  username: string;
+  approvals: string;
+  rejections: string;
+};
+
+// The operator's queue: everything waiting on a human at the admin end.
+export async function getPendingReviewCompletions(limit = 50): Promise<PendingCompletion[]> {
+  const result = await query<PendingCompletion>(
+    `select tc.*, t.title as task_title, t.work_kind, t.verification_mode, t.quorum_size,
+            t.review_reward_points, p.username,
+            0::bigint as approvals, 0::bigint as rejections
+     from task_completions tc
+     join tasks t on t.id = tc.task_id
+     join profiles p on p.id = tc.user_id
+     where tc.status = 'pending' and t.verification_mode = 'review'
+     order by tc.completed_at
+     limit $1`,
+    [limit]
+  );
+  return result.rows;
+}
+
+// The community's queue: peer-reviewed submissions this user hasn't voted
+// on and didn't write. Excluding their own work here as well as in the RPC
+// keeps the list honest rather than showing rows that error on click.
+export async function getPeerReviewQueue(userId: string, limit = 20): Promise<PendingCompletion[]> {
+  const result = await query<PendingCompletion>(
+    `select tc.*, t.title as task_title, t.work_kind, t.verification_mode, t.quorum_size,
+            t.review_reward_points, p.username,
+            count(*) filter (where r.approve) as approvals,
+            count(*) filter (where not r.approve) as rejections
+     from task_completions tc
+     join tasks t on t.id = tc.task_id
+     join profiles p on p.id = tc.user_id
+     left join task_peer_reviews r on r.completion_id = tc.id
+     where tc.status = 'pending'
+       and t.verification_mode = 'quorum'
+       and tc.user_id <> $1
+       and not exists (
+         select 1 from task_peer_reviews mine
+         where mine.completion_id = tc.id and mine.reviewer_id = $1
+       )
+     group by tc.id, t.title, t.work_kind, t.verification_mode, t.quorum_size,
+              t.review_reward_points, p.username
+     order by tc.completed_at
+     limit $2`,
+    [userId, limit]
+  );
+  return result.rows;
+}
+
+// A user's own submissions still waiting on someone. Without this the app
+// takes their work and shows nothing until the points appear, which reads
+// as "it didn't go through".
+export async function getUserPendingSubmissions(userId: string, limit = 20) {
+  const result = await query<
+    TaskCompletion & { task_title: string; quorum_size: number; approvals: string; rejections: string }
+  >(
+    `select tc.*, t.title as task_title, t.quorum_size,
+            count(*) filter (where r.approve) as approvals,
+            count(*) filter (where not r.approve) as rejections
+     from task_completions tc
+     join tasks t on t.id = tc.task_id
+     left join task_peer_reviews r on r.completion_id = tc.id
+     where tc.user_id = $1 and tc.status in ('pending', 'rejected')
+       and tc.completed_at > now() - interval '14 days'
+     group by tc.id, t.title, t.quorum_size
+     order by tc.completed_at desc
+     limit $2`,
+    [userId, limit]
+  );
+  return result.rows;
+}
+
+// --- スポンサー・案件 -----------------------------------------------------
+
+export async function getSponsors(): Promise<Sponsor[]> {
+  const result = await query<Sponsor>("select * from sponsors order by is_active desc, created_at desc");
+  return result.rows;
+}
+
+export async function getCampaigns(): Promise<Campaign[]> {
+  const result = await query<Campaign>(
+    `select * from campaigns
+     order by case status when 'active' then 0 when 'draft' then 1 when 'paused' then 2 else 3 end,
+              created_at desc`
+  );
+  return result.rows;
+}
+
+export async function getCampaignEconomics(): Promise<CampaignEconomics[]> {
+  const result = await query<CampaignEconomics>(
+    `select * from campaign_economics
+     order by case status when 'active' then 0 when 'paused' then 1 when 'draft' then 2 else 3 end,
+              title`
+  );
+  return result.rows;
+}
+
+export type CampaignTask = Task & { campaign_title: string | null; completions: string };
+
+export async function getCampaignTasks(): Promise<CampaignTask[]> {
+  const result = await query<CampaignTask>(
+    `select t.*, c.title as campaign_title,
+            (select count(*) from task_completions tc
+             where tc.task_id = t.id and tc.status = 'verified') as completions
+     from tasks t
+     left join campaigns c on c.id = t.campaign_id
+     order by t.is_active desc, t.created_at desc`
+  );
+  return result.rows;
 }
 
 // Runs both lazy-cron sweeps: kickoff-based locking, then settlement of

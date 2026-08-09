@@ -27,6 +27,7 @@ export type LedgerEntryType =
   | "voter_rake_share"
   | "report_reward"
   | "market_fee_forfeited"
+  | "peer_review_reward"
   | "adjustment";
 
 // What the user sees on their own points history: written from their
@@ -53,6 +54,7 @@ const USER_LABELS: Record<LedgerEntryType, string> = {
   voter_rake_share: "🗳 判定投票の報酬（手数料の分配）",
   report_reward: "🚩 通報の報酬",
   market_fee_forfeited: "作成料の没収（マーケットが停止されたため）",
+  peer_review_reward: "✅ 相互チェックの報酬",
   adjustment: "運営による補正",
 };
 
@@ -80,6 +82,7 @@ const TREASURY_LABELS: Record<LedgerEntryType, string> = {
   voter_rake_share: "判定投票者への手数料分配",
   report_reward: "通報者への報酬",
   market_fee_forfeited: "停止されたマーケットの作成料を没収",
+  peer_review_reward: "相互チェックへの報酬",
   adjustment: "補正",
 };
 
@@ -137,6 +140,7 @@ export function treasuryLedgerLabel(entryType: string, treasuryDelta?: number): 
 // its own to count here.)
 const REVENUE_TYPES = new Set<LedgerEntryType>([
   "task_reward",
+  "peer_review_reward",
   "rake_collected",
   "market_creation_fee",
   "bet_cancelled",

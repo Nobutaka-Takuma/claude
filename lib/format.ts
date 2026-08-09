@@ -17,6 +17,13 @@ export function formatPoints(value: string | number): string {
   return `${Number(value).toLocaleString("ja-JP")}pt`;
 }
 
+// Sponsor money, which is yen and not points. Kept visually distinct from
+// formatPoints on purpose: the two are different currencies and a screen
+// that shows them in the same style invites adding them together.
+export function formatYen(value: string | number): string {
+  return `¥${Number(value).toLocaleString("ja-JP", { maximumFractionDigits: 2 })}`;
+}
+
 export function formatDateTime(value: string | Date): string {
   return new Date(value).toLocaleString("ja-JP", {
     timeZone: APP_TIME_ZONE,

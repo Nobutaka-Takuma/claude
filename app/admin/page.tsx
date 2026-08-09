@@ -29,7 +29,12 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-extrabold">管理画面</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-extrabold">管理画面</h1>
+        <Link href="/admin/work" className="text-xs font-semibold text-accent-ink">
+          案件・タスク管理へ &gt;
+        </Link>
+      </div>
 
       <AdminMarketForm seedAmount={ADMIN_MARKET_SEED()} banThreshold={MARKET_BAN_THRESHOLD()} />
 

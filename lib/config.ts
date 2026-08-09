@@ -79,3 +79,27 @@ export const BET_CANCEL_PENALTY = () => intFromEnv("BET_CANCEL_PENALTY", 3);
 // people flagging something is a real signal.
 export const MARKET_BAN_THRESHOLD = () => intFromEnv("MARKET_BAN_THRESHOLD", 3);
 export const REPORT_REWARD = () => intFromEnv("REPORT_REWARD", 3);
+
+// --- マイクロワーク（スポンサー案件）---
+
+function floatFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+// 1ptを何円とみなすか。案件を作るときの既定値で、そのまま原価計算に使う。
+// ポイントは換金できないので実際の債務ではないが、この数字を決めないと
+// 「1件80円もらって120pt配る」逆ざやの案件が見えないまま増える。
+export const POINT_VALUE_YEN = () => floatFromEnv("POINT_VALUE_YEN", 1.0);
+
+// 相互チェックで支払いに必要な賛成数と、チェック1件あたりの報酬の既定値。
+// チェックを無償にすると誰もやらず、保留が溜まるだけで終わる。
+export const MICRO_WORK_QUORUM = () => intFromEnv("MICRO_WORK_QUORUM", 3);
+export const PEER_REVIEW_REWARD = () => intFromEnv("PEER_REVIEW_REWARD", 2);
+
+// 受注額のうち、ユーザーへの報酬に回す割合（6000 bps = 60%）。管理画面で
+// 案件を作るときに報酬ポイントの目安として提示するだけで、強制はしない。
+// 残りが運営の取り分＝サーバー代・審査の手間・金庫への積み立てになる。
+export const WORK_PAYOUT_RATIO_BPS = () => intFromEnv("WORK_PAYOUT_RATIO_BPS", 6000);

@@ -1,6 +1,6 @@
 import type { QueryResultRow } from "pg";
 import { query } from "./db";
-import type { Bet, Challenge, Market, TreasuryLog } from "./types";
+import type { Bet, Challenge, Market, TaskCompletion, TreasuryLog } from "./types";
 
 // Postgres surfaces `raise exception 'foo'` as error.message === 'foo', so
 // these RPC wrappers just forward that text — route handlers map it to an
@@ -54,6 +54,53 @@ export function completeTask(
     taskId,
     idempotencyKey,
     JSON.stringify(verification),
+  ]);
+}
+
+// The general entry point for any task. Unlike completeTask it does not
+// assume payment happened — a task awaiting review comes back 'pending',
+// and the caller has to say so rather than showing "+30pt".
+export function submitTaskWork(
+  userId: string,
+  taskId: string,
+  idempotencyKey: string,
+  submission: unknown,
+  verification: unknown = {}
+) {
+  return callRpc<TaskCompletion>("select * from submit_task_work($1, $2, $3, $4, $5)", [
+    userId,
+    taskId,
+    idempotencyKey,
+    JSON.stringify(submission),
+    JSON.stringify(verification),
+  ]);
+}
+
+export function reviewTaskCompletion(
+  reviewerId: string,
+  completionId: string,
+  approve: boolean,
+  note: string | null
+) {
+  return callRpc<TaskCompletion>("select * from review_task_completion($1, $2, $3, $4)", [
+    reviewerId,
+    completionId,
+    approve,
+    note,
+  ]);
+}
+
+export function peerReviewCompletion(
+  reviewerId: string,
+  completionId: string,
+  approve: boolean,
+  note: string | null
+) {
+  return callRpc<TaskCompletion>("select * from peer_review_completion($1, $2, $3, $4)", [
+    reviewerId,
+    completionId,
+    approve,
+    note,
   ]);
 }
 
@@ -299,10 +346,21 @@ export function rpcErrorStatus(message: string): number {
     message.includes("home_away_required") ||
     message.includes("duplicate_outcome_keys") ||
     message.includes("reserved_outcome_key") ||
-    message.includes("kickoff_must_be_future")
+    message.includes("kickoff_must_be_future") ||
+    message.includes("quota_exhausted") ||
+    message.includes("budget_exhausted") ||
+    message.includes("cooldown_active") ||
+    message.includes("campaign_not_active") ||
+    message.includes("campaign_not_started") ||
+    message.includes("campaign_ended") ||
+    message.includes("not_peer_reviewed") ||
+    message.includes("completion_not_pending") ||
+    message.includes("cannot_review_own_work") ||
+    message.includes("task_requires_review")
   ) {
     return 422;
   }
+  if (message === "not_authorized") return 403;
   if (message.includes("duplicate") || message.includes("limit_reached") || message.includes("already")) {
     return 409;
   }

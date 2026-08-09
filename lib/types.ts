@@ -1,4 +1,14 @@
-export type TaskType = "ad_view" | "survey";
+export type TaskType = "ad_view" | "survey" | "micro_work";
+
+// How a submission turns into points. Anything a human actually produced
+// needs one of the two review modes — paying out on trust turns the task
+// into a points printer within a day of going live.
+export type VerificationMode = "auto" | "review" | "quorum" | "none";
+
+export type TaskCompletionStatus = "pending" | "verified" | "rejected";
+
+export type SponsorKind = "advertiser" | "agency" | "client" | "internal";
+export type CampaignStatus = "draft" | "active" | "paused" | "finished";
 
 export type MarketStatus =
   | "proposed"
@@ -52,6 +62,95 @@ export interface Task {
   ends_at: string | null;
   max_completions_per_user: number | null;
   created_at: string;
+  // --- 0017: sponsors, campaigns, micro-work ---
+  campaign_id: string | null;
+  work_kind: string | null;
+  verification_mode: VerificationMode;
+  quorum_size: number;
+  review_reward_points: string;
+  cooldown_minutes: number | null;
+  max_completions_total: number | null;
+  revenue_per_completion_yen: string | null;
+}
+
+// One field of a micro-work submission form, described in tasks.config so
+// a new kind of work needs a row, not a deploy.
+export interface WorkFormField {
+  id: string;
+  label: string;
+  type: "text" | "textarea" | "url" | "number" | "select" | "checkbox";
+  options?: string[];
+  required?: boolean;
+  help?: string;
+  placeholder?: string;
+}
+
+export interface TaskCompletion {
+  id: string;
+  task_id: string;
+  user_id: string;
+  status: TaskCompletionStatus;
+  reward_points: string;
+  idempotency_key: string;
+  verification: Record<string, unknown>;
+  submission: Record<string, unknown>;
+  campaign_id: string | null;
+  revenue_yen: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  reward_log_id: string | null;
+  completed_at: string;
+  verified_at: string | null;
+}
+
+export interface Sponsor {
+  id: string;
+  name: string;
+  kind: SponsorKind;
+  contact: string | null;
+  note: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Campaign {
+  id: string;
+  sponsor_id: string;
+  code: string;
+  title: string;
+  status: CampaignStatus;
+  revenue_per_completion_yen: string;
+  fixed_fee_yen: string;
+  budget_yen: string | null;
+  max_completions: number | null;
+  point_value_yen: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+// The campaign_economics view: the one place yen received and the cost of
+// the points handed out are put side by side.
+export interface CampaignEconomics {
+  id: string;
+  code: string;
+  title: string;
+  status: CampaignStatus;
+  sponsor_name: string;
+  sponsor_kind: SponsorKind;
+  budget_yen: string | null;
+  max_completions: number | null;
+  point_value_yen: string;
+  verified_completions: string;
+  pending_completions: string;
+  accrued_yen: string;
+  paid_yen: string;
+  granted_points: string;
+  review_points: string;
+  point_cost_yen: string;
+  margin_yen: string;
 }
 
 export interface Market {
