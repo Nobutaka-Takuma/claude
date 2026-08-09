@@ -8,8 +8,22 @@
 // if the source later revises it).
 import { getProvider } from "./index.mjs";
 
-export async function syncFixtures(pool, { log = () => {} } = {}) {
+export async function syncFixtures(pool, { log = () => {}, allowMock = false } = {}) {
   const provider = getProvider();
+
+  // The mock provider invents matchups between real J-League clubs, which
+  // is indistinguishable from a real fixture list once it's in the
+  // database — people bet on matches that will never be played. It exists
+  // so the CLI is runnable without any configuration, and it must never
+  // reach a live site, so anything triggered from the web app refuses it
+  // rather than quietly filling the board with fiction.
+  if (provider.name === "mock" && !allowMock) {
+    throw new Error(
+      "SPORTS_API_PROVIDER is unset or set to \"mock\", which generates FAKE fixtures — " +
+        "refusing to create markets from them. Set SPORTS_API_PROVIDER=thesportsdb and " +
+        "SPORTSDB_LEAGUES to pull real matches."
+    );
+  }
   const daysAhead = Number(process.env.SPORTS_API_SYNC_DAYS ?? 14);
   const seedAmount = Number(process.env.AUTO_MARKET_SEED ?? 90);
 

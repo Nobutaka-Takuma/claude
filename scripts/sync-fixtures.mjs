@@ -10,7 +10,18 @@ import { syncFixtures } from "./sports-api/syncFixtures.mjs";
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 async function main() {
-  const result = await syncFixtures(pool, { log: (line) => console.log(line) });
+  // Allowed here and nowhere else: running this script is a deliberate
+  // act against whichever database you pointed it at, whereas the button
+  // in the app is a production surface.
+  const result = await syncFixtures(pool, { log: (line) => console.log(line), allowMock: true });
+
+  if (result.provider === "mock") {
+    console.warn(
+      "\nWARNING: these are FAKE fixtures — invented matchups between real clubs.\n" +
+        "         Never run this against a live database. Set SPORTS_API_PROVIDER=thesportsdb\n" +
+        "         and SPORTSDB_LEAGUES to pull real matches."
+    );
+  }
 
   if (result.fetched === 0) {
     console.warn(

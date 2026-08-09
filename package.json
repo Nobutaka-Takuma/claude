@@ -11,6 +11,7 @@
     "smoke-test": "node scripts/smoke-test.mjs",
     "sync-fixtures": "node --env-file=.env.local scripts/sync-fixtures.mjs",
     "sports-leagues": "node --env-file=.env.local scripts/sports-leagues.mjs",
+    "remove-mock-markets": "node --env-file=.env.local scripts/remove-mock-markets.mjs",
     "sync-results": "node --env-file=.env.local scripts/sync-results.mjs",
     "seed-news": "node --env-file=.env.local scripts/seed-news.mjs",
     "sync-news": "node --env-file=.env.local scripts/sync-news.mjs",

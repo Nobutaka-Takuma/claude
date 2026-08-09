@@ -208,7 +208,22 @@ DATABASE_URL="postgresql://...:5432/postgres" npm run migrate:prod
 | 新規登録しても0pt | 金庫が空。`npm run bootstrap:prod` |
 | ログインしてもすぐ切れる | `SESSION_SECRET`がデプロイごとに変わっている（未設定だとビルドが失敗するはずですが、値の再生成にも注意） |
 | Cronが動かない | Hobbyプランの1日1回制限。`vercel.json`を日次に |
+| 実在しない試合のマーケットができた | `SPORTS_API_PROVIDER`が未設定のため、デモ用のダミー試合が作られています。下記で削除してから、環境変数を設定してください（現在は未設定だと自動生成自体が拒否されます） |
 | 日時が9時間ずれる | 2026-08-06以前のデプロイで作られたマーケットのみ該当します。当時はサーバーのUTCで入力を解釈していたため、締切が9時間後ろにずれて保存されています。下記のSQLで確認・修正できます |
+
+### ダミー試合のマーケットを消す（該当する場合のみ）
+
+`SPORTS_API_PROVIDER`を設定する前に自動生成を実行すると、デモ用プロバイダが**実在するクラブ名を使った架空の対戦カード**を作ります。次のコマンドで確認・削除できます（行は消さず、中止扱いにして全ベットを返金します）。
+
+```powershell
+# 本番DBに対して実行する場合
+$env:DATABASE_URL="postgresql://...:5432/postgres"
+
+node scripts/remove-mock-markets.mjs          # 確認のみ
+node scripts/remove-mock-markets.mjs --apply  # 中止＋返金を実行
+```
+
+ローカルなら `npm run remove-mock-markets` / `npm run remove-mock-markets -- --apply` です。
 
 ### 9時間ずれたマーケットの修正（該当する場合のみ）
 

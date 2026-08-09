@@ -4,10 +4,13 @@
 // demonstrable out of the box. Swap to the real apiFootballProvider by
 // setting SPORTS_API_PROVIDER=api_football once a key is configured.
 
+// Prefixed so a mock fixture that somehow reaches a real database is
+// obvious on sight. These are invented matchups; using bare club names
+// made them indistinguishable from a real schedule.
 const TEAM_POOL = [
-  "浦和レッズ", "鹿島アントラーズ", "FC東京", "川崎フロンターレ",
-  "横浜F・マリノス", "ガンバ大阪", "セレッソ大阪", "名古屋グランパス",
-  "ヴィッセル神戸", "サンフレッチェ広島", "アビスパ福岡", "浦和レッズ",
+  "[デモ]浦和", "[デモ]鹿島", "[デモ]FC東京", "[デモ]川崎",
+  "[デモ]横浜FM", "[デモ]G大阪", "[デモ]C大阪", "[デモ]名古屋",
+  "[デモ]神戸", "[デモ]広島", "[デモ]福岡", "[デモ]札幌",
 ];
 
 // Small stable hash so a given externalRef always maps to the same
