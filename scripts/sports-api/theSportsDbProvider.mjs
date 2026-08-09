@@ -13,9 +13,9 @@
 //
 // Configuration:
 //   SPORTS_API_PROVIDER=thesportsdb
-//   SPORTSDB_KEY=...            free key from thesportsdb.com (defaults to
-//                               the public test key "3", heavily rate
-//                               limited — fine for trying it out)
+//   SPORTSDB_KEY=...            optional. Defaults to the public free key,
+//                               which is all this needs; set your own only
+//                               if you have a Premium key.
 //   SPORTSDB_LEAGUES=[{"id":"4363","name":"J1リーグ","category":"soccer"}]
 //
 // League IDs are not guessable and do get renumbered, so don't take any
@@ -23,10 +23,18 @@
 //   npm run sports-leagues -- Japan Soccer
 // and paste what it prints into SPORTSDB_LEAGUES.
 
-const BASE_URL = "https://www.thesportsdb.com/api/v1/json";
+// Overridable so the parsing can be exercised against a stand-in server;
+// nobody needs to set this in normal use.
+const BASE_URL = process.env.SPORTSDB_BASE_URL || "https://www.thesportsdb.com/api/v1/json";
 
-function apiKey() {
-  return process.env.SPORTSDB_KEY || "3";
+// TheSportsDB publishes one shared free key on its API page. It has
+// changed before ("1", then "3", now "123"), which is exactly the kind of
+// thing that turns into "no leagues found" with no explanation — so when a
+// lookup comes back empty, the caller reports which key it used.
+const FREE_API_KEY = "123";
+
+export function apiKey() {
+  return process.env.SPORTSDB_KEY || FREE_API_KEY;
 }
 
 // Deliberately empty by default. Shipping guessed league IDs would mean
@@ -71,14 +79,60 @@ async function sportsDbFetch(path, params = {}) {
   return res.json();
 }
 
-// Prints the league IDs for a country so nobody has to guess them.
-export async function searchLeagues(country = "Japan", sport = "Soccer") {
-  const body = await sportsDbFetch("search_all_leagues.php", { c: country, s: sport });
-  return (body?.countrys ?? []).map((l) => ({
+// TheSportsDB is inconsistent about the key it wraps league lists in
+// ("countrys" — their typo — vs "countries" vs "leagues"), and which one
+// you get depends on the endpoint. Accept all of them rather than
+// silently reading undefined and reporting "no leagues found".
+function extractLeagues(body) {
+  const list = body?.countrys ?? body?.countries ?? body?.leagues ?? null;
+  return Array.isArray(list) ? list : [];
+}
+
+function normaliseLeague(l) {
+  return {
     id: l.idLeague,
     name: l.strLeague,
-    alternate: l.strLeagueAlternate ?? null,
-  }));
+    alternate: l.strLeagueAlternate || null,
+    sport: l.strSport || null,
+  };
+}
+
+// Returns whatever the API actually said, for when the friendly output is
+// empty and the question becomes "did it answer at all?".
+export async function rawLookup(country = "Japan", sport = "Soccer") {
+  return {
+    key: apiKey(),
+    search_all_leagues: await sportsDbFetch("search_all_leagues.php", { c: country, s: sport }),
+  };
+}
+
+// Prints the league IDs for a country so nobody has to guess them.
+//
+// Two endpoints because the country-filtered one is the more likely of the
+// two to be restricted or to answer with an empty body; falling back to
+// the full list and filtering here means a lookup that would otherwise
+// dead-end still returns something useful.
+export async function searchLeagues(country = "Japan", sport = "Soccer") {
+  const searched = extractLeagues(
+    await sportsDbFetch("search_all_leagues.php", { c: country, s: sport })
+  );
+  if (searched.length > 0) return searched.map(normaliseLeague);
+
+  const all = extractLeagues(await sportsDbFetch("all_leagues.php"));
+  const wantedSport = sport.toLowerCase();
+  const wantedCountry = country.toLowerCase();
+
+  return all
+    .map(normaliseLeague)
+    .filter((l) => {
+      const matchesSport = !l.sport || l.sport.toLowerCase() === wantedSport;
+      const haystack = `${l.name ?? ""} ${l.alternate ?? ""}`.toLowerCase();
+      // all_leagues.php carries no country field, so match on the name —
+      // "Japanese J1 League", "Japan Football League", and so on.
+      const matchesCountry =
+        haystack.includes(wantedCountry) || haystack.includes(wantedCountry.replace(/n$/, "nese"));
+      return matchesSport && matchesCountry;
+    });
 }
 
 // TheSportsDB returns dates and times separately, in UTC.

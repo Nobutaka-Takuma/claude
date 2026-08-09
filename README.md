@@ -275,6 +275,8 @@ npm run sync-news -- --watch 15  # 15分間隔
 
 推奨は [TheSportsDB](https://www.thesportsdb.com/) です。ドキュメント付きの無料APIで、無料のスポーツAPIとしては珍しく**日本のリーグ（J1/J2/J3・NPB・Bリーグなど）を収録**しているのが採用理由です。
 
+**APIキーの設定は不要です。** TheSportsDBは共有の無料キーを公開しており、それを自動で使います。Premiumキーをお持ちの場合のみ`SPORTSDB_KEY`を設定してください。
+
 ```bash
 # 1. リーグIDを調べる（IDは推測できず、変更されることもあるので必ずここで確認してください）
 npm run sports-leagues -- Japan Soccer
@@ -282,6 +284,9 @@ npm run sports-leagues -- Japan Baseball
 
 #   id=4363  Japanese J1 League
 #   ...
+
+# 結果が0件のときは、APIが何を返したかをそのまま表示できます
+npm run sports-leagues -- Japan Soccer --raw
 
 # 2. .env.local に設定
 #   SPORTS_API_PROVIDER=thesportsdb

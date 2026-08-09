@@ -133,7 +133,7 @@ Vercelのプロジェクト設定 → **Environment Variables**。Production / P
 | `SPORTS_API_PROVIDER` | `thesportsdb` |
 | `SPORTSDB_LEAGUES` | `[{"id":"4363","name":"J1リーグ","category":"soccer"}]` のようなJSON |
 
-無料の公開テストキーは強いレート制限があるので、継続運用するなら [thesportsdb.com](https://www.thesportsdb.com/) で無料キーを取得して `SPORTSDB_KEY` に設定してください。
+`SPORTSDB_KEY`の設定は不要です（TheSportsDBが公開している共有の無料キーを自動で使います）。Premiumキーをお持ちの場合のみ設定してください。
 
 ### 2-3. デプロイ
 
