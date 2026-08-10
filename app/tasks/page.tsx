@@ -233,6 +233,7 @@ export default async function TasksPage() {
               {task.description && <p className="text-xs text-ink-muted">{task.description}</p>}
               <AdTaskButton
                 taskId={task.id}
+                rewardPoints={Number(task.reward_points)}
                 disabled={reachedLimit}
                 disabledReason={max ? `本日の残り 0/${max}` : undefined}
               />

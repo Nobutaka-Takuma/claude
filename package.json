@@ -17,7 +17,8 @@
     "sync-news": "node --env-file=.env.local scripts/sync-news.mjs",
     "migrate": "node --env-file=.env.local scripts/migrate.mjs",
     "migrate:prod": "node scripts/migrate.mjs",
-    "bootstrap:prod": "node scripts/bootstrap-production.mjs"
+    "bootstrap:prod": "node scripts/bootstrap-production.mjs",
+    "seed-mock-tasks": "node --env-file=.env.local scripts/seed-mock-tasks.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

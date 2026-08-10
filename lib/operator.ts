@@ -44,6 +44,17 @@ export function missingOperatorFields(info: OperatorInfo): string[] {
   return REQUIRED_FIELDS.filter(([key]) => !info[key]).map(([, label]) => label);
 }
 
+// 規約・ポリシーへの導線をフッターに出すかどうか。
+//
+// β版で身内しか見ていない間は、規約やガイドラインが全ページの下に並んで
+// いても場所を取るだけなので、既定では出さずマイページの隅に置いておく。
+// ページ自体はURLで常にアクセスできるので、隠しているのは導線だけ。
+//
+// 一般公開するとき、および広告ネットワーク・ASPに申し込むときは true に
+// 戻すこと。審査は「どのページからでもプライバシーポリシーに到達できるか」
+// を見るので、ここが false のままだとその一点で落ちる。
+export const SHOW_LEGAL_FOOTER = () => process.env.SHOW_LEGAL_FOOTER === "true";
+
 // 規約・ポリシーの最終改定日。文面を直したらここも更新する。
 // 改定日の入っていない規約は、いつ時点のものか誰にも分からない。
 export const POLICY_REVISED_AT = "2026年8月9日";

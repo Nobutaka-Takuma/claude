@@ -6,6 +6,7 @@ import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import { userLedgerLabel } from "@/lib/ledgerLabels";
 import { BET_CANCEL_PENALTY } from "@/lib/config";
 import CancelBetButton from "@/components/CancelBetButton";
+import LegalLinks from "@/components/LegalLinks";
 
 // One line of context under each ledger entry, so "保証金 −100pt" says
 // which market it was for — and, for a bet, which side was backed.
@@ -157,6 +158,16 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
           })}
         </ul>
       )}
+
+      {/* 規約類への導線。β版の間はフッターに出さないので、ここが唯一の
+          入口になる（URLでは常にアクセスできる）。一般公開時は
+          SHOW_LEGAL_FOOTER=true でフッターにも並ぶ。 */}
+      <div className="pt-4 border-t border-line space-y-2">
+        <LegalLinks muted />
+        <p className="text-[11px] text-ink-faint">
+          ポイントは現金・商品等と交換できません。購入も譲渡もできません。
+        </p>
+      </div>
     </div>
   );
 }

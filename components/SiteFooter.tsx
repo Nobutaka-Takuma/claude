@@ -1,33 +1,22 @@
-import Link from "next/link";
-import { operatorInfo } from "@/lib/operator";
+import { operatorInfo, SHOW_LEGAL_FOOTER } from "@/lib/operator";
+import LegalLinks from "./LegalLinks";
 
-// 法務ページへの導線。
+// 全ページ共通のフッター。
 //
-// フッターに置いてあるのは体裁の問題ではなく、広告ネットワーク・ASPの
-// 審査が「どのページからでもプライバシーポリシーに到達できるか」を見る
-// ため。利用者にとっても、規約を探すのに設定画面を掘る必要がない。
-const LINKS = [
-  { href: "/guidelines", label: "ガイドライン" },
-  { href: "/terms", label: "利用規約" },
-  { href: "/privacy", label: "プライバシーポリシー" },
-  { href: "/operator", label: "運営者情報" },
-  { href: "/contact", label: "お問い合わせ" },
-];
-
+// β版の間は既定で表示しません（SHOW_LEGAL_FOOTER=true で有効）。規約類へは
+// マイページの下部からたどれます。一般公開時・広告審査の申し込み前には必ず
+// true にしてください — 審査は「どのページからでもプライバシーポリシーに
+// 到達できるか」を見ます。
 export default function SiteFooter() {
+  if (!SHOW_LEGAL_FOOTER()) return null;
+
   const info = operatorInfo();
   const year = new Date().getFullYear();
 
   return (
     <footer className="border-t border-line bg-surface">
       <div className="max-w-3xl mx-auto px-4 py-5 space-y-3">
-        <nav className="flex flex-wrap gap-x-4 gap-y-2">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="text-[11px] font-semibold text-ink-muted hover:text-accent-ink">
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+        <LegalLinks />
         <p className="text-[11px] text-ink-faint leading-relaxed">
           本サービスのポイントは現金・商品等と交換できません。購入も譲渡もできず、金銭を賭ける行為ではありません。
         </p>

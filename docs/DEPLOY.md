@@ -184,6 +184,8 @@ READMEの「一般公開にあたっての倫理的リスクと対応」も併�
 ### 法務ページ（広告収益化の前提でもあります）
 
 - [ ] `OPERATOR_NAME` / `OPERATOR_ADDRESS` / `OPERATOR_CONTACT_EMAIL` / `SITE_URL` をVercelのEnvironment Variablesに設定する
+- [ ] **`SHOW_LEGAL_FOOTER=true` を設定する**。β版の間はフッターの導線を隠しているので、そのままだと規約・プライバシーポリシーへのリンクがマイページにしかありません。広告の審査はここを見ます
+- [ ] `npm run seed-mock-tasks -- --remove` でデモタスク（`[デモ]`で始まるもの）とダミー案件を片付ける
 - [ ] `/terms` `/privacy` `/operator` を開き、**先頭に赤い警告が出ていない**ことを確認する（出ていれば上の環境変数が未設定です）
 - [ ] `/contact` からテスト送信し、`/admin`の受信箱に届くことを確認する
 - [ ] 届いたメールアドレスに返信できることを確認する（返信はメールソフトから手動で行います。送信メールの仕組みは未実装）
