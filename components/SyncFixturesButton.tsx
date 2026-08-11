@@ -24,12 +24,33 @@ export default function SyncFixturesButton() {
       return;
     }
 
-    const body = await res.json();
-    setMessage(
-      body.fetched === 0
-        ? "取得できた試合が0件でした。リーグの設定（SPORTSDB_LEAGUES）をご確認ください。"
-        : `新規${body.created}件・更新${body.updated}件を取り込みました（取得${body.fetched}件）。`
-    );
+    const body = (await res.json()) as {
+      fetched?: number;
+      created?: number;
+      updated?: number;
+      truncated?: number;
+      daysAhead?: number;
+    };
+
+    if (!body.fetched) {
+      setMessage(
+        `今後${body.daysAhead ?? "?"}日以内に予定されている試合が0件でした。` +
+          "リーグの設定（SPORTSDB_LEAGUES）と、そのリーグが今シーズン中かをご確認ください。"
+      );
+      router.refresh();
+      return;
+    }
+
+    // 「取得」と「新規」を並べて出す。作られた数だけだと、少なかったときに
+    // 取得できていないのか既にあるのかが区別できない。
+    const parts = [
+      `今後${body.daysAhead}日以内の試合を${body.fetched}件取得`,
+      `新規${body.created}件・更新${body.updated}件`,
+    ];
+    if (body.truncated) {
+      parts.push(`※1回あたりの上限のため${body.truncated}件は次回に持ち越し`);
+    }
+    setMessage(`${parts.join(" → ")}。`);
     router.refresh();
   }
 

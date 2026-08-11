@@ -26,11 +26,33 @@ export async function syncFixtures(pool, { log = () => {}, allowMock = false } =
   }
   const daysAhead = Number(process.env.SPORTS_API_SYNC_DAYS ?? 14);
   const seedAmount = Number(process.env.AUTO_MARKET_SEED ?? 90);
+  // 1回の同期で作るマーケットの上限。
+  //
+  // 取得元がシーズン全体を返すようになったので、期間の絞り込みが何かの
+  // 拍子に効かなくなると、1シーズン分（数百試合）のマーケットが一度に
+  // でき、そのぶん初期賞金が金庫から出ていく。取り返しがつくうちに止める
+  // ための弁で、通常の1〜2週間分がこれに引っかかることはない。
+  const maxPerSync = Number(process.env.SPORTS_API_MAX_MARKETS_PER_SYNC ?? 60);
 
   log(`Fetching fixtures from provider "${provider.name}" (next ${daysAhead} days)...`);
 
-  const fixtures = await provider.listUpcomingFixtures(daysAhead);
-  log(`Got ${fixtures.length} fixture(s).`);
+  const allFixtures = await provider.listUpcomingFixtures(daysAhead);
+
+  // キックオフの早い順に切る。上限に当たったとき、見送られるのが遠い先の
+  // 試合になるようにするため（近い試合が落ちるほうが困る）。
+  const sorted = [...allFixtures].sort(
+    (a, b) => new Date(a.kickoffTime) - new Date(b.kickoffTime)
+  );
+  const fixtures = sorted.slice(0, maxPerSync);
+  const truncated = sorted.length - fixtures.length;
+
+  log(`Got ${allFixtures.length} fixture(s).`);
+  if (truncated > 0) {
+    log(
+      `WARNING: 1回あたりの上限 ${maxPerSync} 件を超えたため、キックオフの遅い ${truncated} 件は今回見送りました。` +
+        `次回の同期で取り込まれます（上限は SPORTS_API_MAX_MARKETS_PER_SYNC で変更できます）。`
+    );
+  }
 
   let created = 0;
   let updated = 0;
@@ -66,5 +88,14 @@ export async function syncFixtures(pool, { log = () => {}, allowMock = false } =
     else created++;
   }
 
-  return { provider: provider.name, fetched: fixtures.length, created, updated, skipped };
+  return {
+    provider: provider.name,
+    daysAhead,
+    fetched: allFixtures.length,
+    processed: fixtures.length,
+    truncated,
+    created,
+    updated,
+    skipped,
+  };
 }

@@ -135,6 +135,16 @@ export async function searchLeagues(country = "Japan", sport = "Soccer") {
     });
 }
 
+// リーグの「今のシーズン」の文字列を取ってくる。
+//
+// eventsseason.php はシーズン名を要求するが、その表記はリーグごとに違う
+// （Jリーグは "2026"、欧州は "2025-2026"）ので、こちらで組み立てると外れる。
+// lookupleague.php が strCurrentSeason を返すので、それをそのまま渡す。
+async function currentSeason(leagueId) {
+  const body = await sportsDbFetch("lookupleague.php", { id: leagueId });
+  return body?.leagues?.[0]?.strCurrentSeason || null;
+}
+
 // TheSportsDB returns dates and times separately, in UTC.
 function toKickoffIso(event) {
   if (event.strTimestamp) {
@@ -167,19 +177,54 @@ export const theSportsDbProvider = {
     const fixtures = [];
 
     for (const league of leagues) {
-      // eventsnextleague returns the next 15 scheduled events for a
-      // league — exactly "what's coming up", which is what this is for.
-      const body = await sportsDbFetch("eventsnextleague.php", { id: league.id });
-      const events = body?.events ?? [];
-      console.log(`  <- league ${league.id} (${league.name ?? "?"}): ${events.length} event(s)`);
+      // 2つの経路から取って突き合わせる。
+      //
+      // 以前は eventsnextleague.php だけを見ていたが、この「次のN件」系の
+      // エンドポイントは無料キーで返る件数が絞られることがあり、実際に
+      // 各リーグ1試合しか作られない状態になっていた。シーズン全体を返す
+      // eventsseason.php を主にして、そちらが空でも次節が拾えるように
+      // eventsnextleague.php も併用する。同じ試合は idEvent で重複を除く。
+      const events = new Map();
+      const sources = [];
 
-      for (const event of events) {
+      try {
+        const season = await currentSeason(league.id);
+        if (season) {
+          const body = await sportsDbFetch("eventsseason.php", { id: league.id, s: season });
+          const seasonEvents = body?.events ?? [];
+          for (const e of seasonEvents) if (e?.idEvent) events.set(e.idEvent, e);
+          sources.push(`season ${season}: ${seasonEvents.length}`);
+        } else {
+          sources.push("season: 取得できず");
+        }
+      } catch (err) {
+        // 片方が落ちてももう片方で続ける。ただし黙って0件にはしない。
+        sources.push(`season: 失敗 (${err.message.slice(0, 60)})`);
+      }
+
+      try {
+        const body = await sportsDbFetch("eventsnextleague.php", { id: league.id });
+        const nextEvents = body?.events ?? [];
+        let added = 0;
+        for (const e of nextEvents) {
+          if (!e?.idEvent) continue;
+          if (!events.has(e.idEvent)) added++;
+          events.set(e.idEvent, e);
+        }
+        sources.push(`next: ${nextEvents.length}（うち新規${added}）`);
+      } catch (err) {
+        sources.push(`next: 失敗 (${err.message.slice(0, 60)})`);
+      }
+
+      let inWindow = 0;
+      for (const event of events.values()) {
         const kickoffTime = toKickoffIso(event);
         if (!kickoffTime) continue;
         const at = new Date(kickoffTime).getTime();
         if (at <= Date.now() || at > cutoff) continue;
         if (!event.strHomeTeam || !event.strAwayTeam) continue;
 
+        inWindow++;
         fixtures.push({
           // Prefixed so these can never collide with another provider's
           // ids in markets.external_ref.
@@ -193,9 +238,24 @@ export const theSportsDbProvider = {
           matchweek: event.intRound ? Number(event.intRound) || null : null,
         });
       }
+
+      // 「取得できた総数」と「期間内に残った数」を並べて出す。0件だった
+      // ときに、APIが返していないのか、こちらの期間で落としているのかが
+      // ログだけで切り分けられる。
+      console.log(
+        `  <- league ${league.id} (${league.name ?? "?"}): ` +
+          `${events.size}件取得 → 今後${daysAhead}日以内 ${inWindow}件  [${sources.join(" / ")}]`
+      );
     }
 
-    return fixtures;
+    // 同じ試合が複数リーグ設定に含まれることがある（天皇杯とリーグ戦など
+    // 主催が別で同じ idEvent が返るケース）ので、最後にもう一度重複を除く。
+    const deduped = new Map();
+    for (const f of fixtures) if (!deduped.has(f.externalRef)) deduped.set(f.externalRef, f);
+
+    return [...deduped.values()].sort(
+      (a, b) => new Date(a.kickoffTime) - new Date(b.kickoffTime)
+    );
   },
 
   async fetchResult(externalRef) {
