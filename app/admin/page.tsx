@@ -15,6 +15,7 @@ import StatusBadge from "@/components/StatusBadge";
 import AdminMarketForm from "@/components/AdminMarketForm";
 import ModerateMarketButtons from "@/components/ModerateMarketButtons";
 import SyncFixturesButton from "@/components/SyncFixturesButton";
+import SyncResultsButton from "@/components/SyncResultsButton";
 import { reportCategoryLabel } from "@/lib/reportCategories";
 import { ADMIN_MARKET_SEED, MARKET_BAN_THRESHOLD } from "@/lib/config";
 
@@ -49,6 +50,7 @@ export default async function AdminPage() {
       <AdminMarketForm seedAmount={ADMIN_MARKET_SEED()} banThreshold={MARKET_BAN_THRESHOLD()} />
 
       <SyncFixturesButton />
+      <SyncResultsButton />
 
       {/* First on the page: a reported market is the only thing here that
           gets worse the longer it waits. */}

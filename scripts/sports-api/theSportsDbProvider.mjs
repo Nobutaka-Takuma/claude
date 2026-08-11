@@ -258,7 +258,11 @@ export const theSportsDbProvider = {
     );
   },
 
-  async fetchResult(externalRef) {
+  // 名前は他のプロバイダに揃えてある。以前ここだけ fetchResult という名前
+  // で、呼び出し側の sync-results.mjs は getFixtureResult を呼んでいたため、
+  // thesportsdb を使っている構成では結果の自動取得が
+  // 「provider.getFixtureResult is not a function」で必ず落ちていた。
+  async getFixtureResult(externalRef) {
     const id = externalRef.replace(/^thesportsdb:/, "");
     const body = await sportsDbFetch("lookupevent.php", { id });
     const event = body?.events?.[0];
@@ -274,6 +278,10 @@ export const theSportsDbProvider = {
       homeScore: home,
       awayScore: away,
       outcome: home > away ? "home" : home < away ? "away" : "draw",
+      // 結果の出どころ。人が報告するときは証跡URLが必須なので、APIが
+      // 報告するときも同じものを残しておかないと、あとから誰も検証できない
+      // 結果だけが並ぶことになる。
+      sourceUrl: `https://www.thesportsdb.com/event/${id}`,
     };
   },
 };

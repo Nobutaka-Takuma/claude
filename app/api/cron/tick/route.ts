@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { syncMarketStatus, finalizeExpiredMarkets } from "@/lib/rpc";
 import { syncFixtures } from "@/scripts/sports-api/syncFixtures.mjs";
+import { syncResults } from "@/scripts/sports-api/syncResults.mjs";
 import { isScheduledCaller } from "@/lib/cronAuth";
 import { rpcErrorResponse } from "@/lib/apiError";
 import { BOND_AWARD_BPS, RESOLUTION_REWARD } from "@/lib/config";
@@ -17,11 +18,16 @@ import { BOND_AWARD_BPS, RESOLUTION_REWARD } from "@/lib/config";
 // This endpoint runs the same two sweeps on a schedule so settlement
 // happens close to when it was due, whether or not anyone is looking.
 //
-// It also pulls upcoming fixtures, rather than that being its own cron
-// entry: Vercel's Hobby plan allows only a couple of scheduled jobs, and
-// spending one on something this small would mean choosing between
-// settlement and a populated board. A fixture-source failure is reported
-// but doesn't fail the settlement sweep that already succeeded.
+// It also pulls upcoming fixtures and finished results, rather than those
+// being separate cron entries: Vercel's Hobby plan allows only a couple of
+// scheduled jobs, and spending one on each would mean choosing between
+// settlement and a populated board. A sports-source failure is reported
+// but never fails the settlement sweep that already succeeded.
+//
+// Results are fetched BEFORE the settlement sweep. A match that finished
+// overnight is then reported and — if its dispute window has already
+// elapsed by the time the sweep runs — settled in the same tick, instead
+// of waiting a further day for the next one.
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
@@ -29,12 +35,25 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const sportsEnabled =
+    Boolean(process.env.SPORTS_API_PROVIDER) && process.env.SPORTS_API_PROVIDER !== "mock";
+
   try {
+    let results: unknown = "skipped";
+    if (sportsEnabled) {
+      try {
+        results = await syncResults(pool, { log: (line) => console.log(line) });
+      } catch (err) {
+        console.error("result sync failed during tick", err);
+        results = { error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
     await syncMarketStatus();
     await finalizeExpiredMarkets(BOND_AWARD_BPS(), RESOLUTION_REWARD());
 
     let fixtures: unknown = "skipped";
-    if (process.env.SPORTS_API_PROVIDER && process.env.SPORTS_API_PROVIDER !== "mock") {
+    if (sportsEnabled) {
       try {
         fixtures = await syncFixtures(pool, { log: (line) => console.log(line) });
       } catch (err) {
@@ -43,7 +62,7 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ ok: true, at: new Date().toISOString(), fixtures });
+    return NextResponse.json({ ok: true, at: new Date().toISOString(), results, fixtures });
   } catch (err) {
     return rpcErrorResponse(err);
   }
