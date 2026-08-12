@@ -10,9 +10,17 @@ function intFromEnv(name: string, fallback: number): number {
 // participate immediately instead of having to grind tasks first.
 export const SIGNUP_BONUS_POINTS = () => intFromEnv("SIGNUP_BONUS_POINTS", 1000);
 
-// What it costs to open a market instantly (the anti-spam gate), and the
-// creator's share of that market's rake when it settles.
-export const MARKET_CREATION_COST = () => intFromEnv("MARKET_CREATION_COST", 100);
+// What it costs to open a market instantly, and the creator's share of
+// that market's rake when it settles.
+//
+// 0 の間はマーケット作成が無料になる。「作られないより乱立するほうがまし」
+// という判断で一時的に下げているもので、本来はスパム対策の関門なので、
+// 人が集まったら戻す前提の数字。
+//
+// 副作用に注意: 初期賞金は作成料から出る（MARKET_SEED_BPS）ので、0 にすると
+// 初期賞金も 0 になる。stake-back 保証があるため賭けた人が損をすることは
+// ないが、反対側に誰もいないマーケットは「増えも減りもしない」で終わる。
+export const MARKET_CREATION_COST = () => intFromEnv("MARKET_CREATION_COST", 0);
 export const MARKET_CREATOR_FEE_BPS = () => intFromEnv("MARKET_CREATOR_FEE_BPS", 1000);
 
 // Share of the creation fee that becomes seeded prize money for the
@@ -40,7 +48,10 @@ export const RESOLUTION_BOND = () => intFromEnv("RESOLUTION_BOND", 100);
 // is not an incentive — it's what happens if you do nothing — so this is
 // the actual wage for checking a source and reporting it. Funded by the
 // slice of each market's creation fee the treasury keeps.
-export const RESOLUTION_REWARD = () => intFromEnv("RESOLUTION_REWARD", 10);
+// 10pt では「保証金100ptを預けて、証跡を探して報告する」割に合わなかった。
+// 報告されないマーケットは誰の得にもならないので、保証金と同額まで上げて
+// いる（当たれば預けた分が戻り、さらに同額が乗る）。
+export const RESOLUTION_REWARD = () => intFromEnv("RESOLUTION_REWARD", 100);
 
 // How long the community has to dispute a proposed result.
 export const DISPUTE_WINDOW_MINUTES = () => intFromEnv("DISPUTE_WINDOW_MINUTES", 1440);
@@ -62,7 +73,9 @@ export const BOND_AWARD_BPS = () => intFromEnv("BOND_AWARD_BPS", 7000);
 // Voting rewards: correct voters split this share of the rake, and the
 // first N of them also get a flat bonus.
 export const VOTER_RAKE_SHARE_BPS = () => intFromEnv("VOTER_RAKE_SHARE_BPS", 5000);
-export const VOTE_FLAT_REWARD = () => intFromEnv("VOTE_FLAT_REWARD", 3);
+// 3pt では投票する理由にならず、異議申し立ての投票が集まらなかった。
+// 判定に人が集まらないと、そのマーケットの精算自体が止まる。
+export const VOTE_FLAT_REWARD = () => intFromEnv("VOTE_FLAT_REWARD", 30);
 export const VOTE_REWARD_SLOTS = () => intFromEnv("VOTE_REWARD_SLOTS", 10);
 
 // Cancelling a bet before the market closes costs this much, so it isn't
@@ -78,7 +91,9 @@ export const BET_CANCEL_PENALTY = () => intFromEnv("BET_CANCEL_PENALTY", 3);
 // grows — three is right for a small community where three independent
 // people flagging something is a real signal.
 export const MARKET_BAN_THRESHOLD = () => intFromEnv("MARKET_BAN_THRESHOLD", 3);
-export const REPORT_REWARD = () => intFromEnv("REPORT_REWARD", 3);
+// 通報の報酬も同じ理由で引き上げる。作成料が0の間は没収する原資がないので、
+// これは金庫からの持ち出しになる（ban_market は元々金庫から払っている）。
+export const REPORT_REWARD = () => intFromEnv("REPORT_REWARD", 30);
 
 // --- マイクロワーク（スポンサー案件）---
 

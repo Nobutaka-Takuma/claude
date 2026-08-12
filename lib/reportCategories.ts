@@ -43,9 +43,12 @@ export const REPORT_CATEGORIES: ReportCategory[] = [
     description: "当事者や関係者が結果を意図的に動かせてしまう",
   },
   {
+    // 「曖昧だから」で通報されると、狙っている使い方（アニメの展開予想など）
+    // が片端から止まる。対象にするのは曖昧さではなく、
+    // 「いつまでも決着がつかず、賭けたポイントが戻らない」お題。
     key: "unverifiable",
-    label: "判定できない",
-    description: "何をもって結果とするか客観的に決められない",
+    label: "いつまでも結果が出ない",
+    description: "期限がない、または何が起きても決着がつかず、精算されないまま終わる",
   },
   { key: "spam", label: "スパム・重複", description: "荒らし、または既存マーケットの重複" },
   { key: "other", label: "その他", description: "上記に当てはまらないが不適切" },

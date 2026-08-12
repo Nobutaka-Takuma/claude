@@ -455,6 +455,10 @@ export type BetWithMarket = Bet & {
   outcome_options: Market["outcome_options"];
   resolves_at: string | null;
   kickoff_time: string;
+  // 報告されたが確定していない結果と、その確定予定。マイページで
+  // 「暫定 的中」を出すのに要る（lib/provisional.ts）。
+  market_outcome: string | null;
+  dispute_deadline: string | null;
 };
 
 export async function getUserBets(userId: string): Promise<BetWithMarket[]> {
@@ -464,7 +468,8 @@ export async function getUserBets(userId: string): Promise<BetWithMarket[]> {
   await tickMarketLifecycle();
   const result = await query<BetWithMarket>(
     `select b.*, m.title, m.home_team, m.away_team, m.status as status_market,
-            m.market_kind, m.outcome_options, m.resolves_at, m.kickoff_time
+            m.market_kind, m.outcome_options, m.resolves_at, m.kickoff_time,
+            m.outcome as market_outcome, m.dispute_deadline
      from bets b join markets m on m.id = b.market_id
      where b.user_id = $1
      order by b.placed_at desc

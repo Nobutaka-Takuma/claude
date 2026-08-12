@@ -14,6 +14,7 @@ import {
 import { categoryIcon, categoryLabel } from "@/lib/categories";
 import { formatDateTime, formatPoints, formatRelativeToNow, isPast } from "@/lib/format";
 import { summarizePools } from "@/lib/pool";
+import { provisionalState, estimateSettlementPayout } from "@/lib/provisional";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import {
   RESOLUTION_BOND,
@@ -43,6 +44,7 @@ import EarlyResolutionForm from "@/components/EarlyResolutionForm";
 import CancelBetButton from "@/components/CancelBetButton";
 import RelatedMarkets from "@/components/RelatedMarkets";
 import ReportMarketButton from "@/components/ReportMarketButton";
+import ShareMarketButton from "@/components/ShareMarketButton";
 
 export default async function MarketDetailPage({ params }: PageProps<"/markets/[marketId]">) {
   const { marketId } = await params;
@@ -306,7 +308,30 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
                     {outcomeLabel(market.outcome_options, b.outcome)} に {formatPoints(b.amount)}
                   </span>
                   <span className="font-mono-num font-semibold whitespace-nowrap">
-                    {b.status === "active" && "結果待ち"}
+                    {b.status === "active" &&
+                      (() => {
+                        const state = provisionalState(b.status, market.status, b.outcome, market.outcome);
+                        if (state === "hit") {
+                          // この結果のまま確定したときに受け取る額。まだ覆る
+                          // 可能性があるので「暫定」と明記する。
+                          const payout = market.outcome
+                            ? estimateSettlementPayout(
+                                pool,
+                                market.outcome,
+                                Number(b.amount),
+                                market.rake_bps,
+                                Number(market.seed_pool)
+                              )
+                            : null;
+                          return (
+                            <span className="text-gold">
+                              暫定 的中{payout !== null && ` +${formatPoints(payout)}`}
+                            </span>
+                          );
+                        }
+                        if (state === "miss") return <span className="text-ink-faint">暫定 不的中</span>;
+                        return "結果待ち";
+                      })()}
                     {b.status === "won" && `的中 +${formatPoints(b.payout_amount)}`}
                     {b.status === "lost" && "不的中"}
                     {b.status === "refunded" && "返金済み"}
@@ -392,6 +417,14 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
 
       {profile?.role === "admin" && (market.status === "pending_resolution" || market.status === "disputed") && (
         <AdminResolveForm marketId={market.id} outcomeOptions={market.outcome_options} />
+      )}
+
+      {/* 反対側に賭ける人がいないとプールができないので、まだ受付中の
+          マーケットには人を呼ぶ導線を置く。 */}
+      {bettingOpen && (
+        <div className="flex justify-center">
+          <ShareMarketButton title={marketHeading(market)} />
+        </div>
       )}
 
       <RelatedMarkets market={market} />

@@ -29,8 +29,6 @@ export default function SubmitResultForm({
 
   const requiredBond = isAdmin ? 0 : bond;
   const canAfford = balance >= requiredBond;
-  // Admins override out-of-band; everyone else has to show their source.
-  const evidenceRequired = !isAdmin;
   const hasEvidence = evidenceUrl.trim().length > 0;
 
   async function submit(outcome: string) {
@@ -92,18 +90,22 @@ export default function SubmitResultForm({
         </p>
       )}
 
+      {/* 以前は証跡URLを必須にしていたが、「結果は分かっているのに貼れるURLを
+          探すのが面倒で報告しない」を大量に生んでいた。報告されないマーケットは
+          誰の得にもならない。出典が争点になるのは異議が出たときなので、
+          そこで貼れれば足りる。 */}
       <label className="block space-y-1 pt-1">
-        <span className="text-xs text-ink-muted">証跡URL{evidenceRequired ? "" : "（任意）"}</span>
+        <span className="text-xs text-ink-muted">証跡URL（任意）</span>
         <input
           type="url"
           inputMode="url"
           value={evidenceUrl}
           onChange={(e) => setEvidenceUrl(e.target.value)}
-          placeholder="https://... 結果が確認できるニュース記事・公式ページ"
+          placeholder="https://... 結果が確認できるページ（なくても報告できます）"
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
         <span className="block text-[11px] text-ink-faint">
-          他の人が異議を出すか判断できるように、結果の出典を残してください。
+          あれば他の人が確かめやすくなり、異議が出にくくなります。
         </span>
       </label>
 
@@ -112,7 +114,7 @@ export default function SubmitResultForm({
           <button
             key={o.key}
             type="button"
-            disabled={submitting !== null || !canAfford || (evidenceRequired && !hasEvidence)}
+            disabled={submitting !== null || !canAfford}
             onClick={() => submit(o.key)}
             className="text-xs font-bold py-2.5 rounded-lg bg-surface border border-gold text-gold disabled:opacity-50 truncate"
           >
@@ -120,9 +122,6 @@ export default function SubmitResultForm({
           </button>
         ))}
       </div>
-      {evidenceRequired && !hasEvidence && (
-        <p className="text-[11px] text-ink-faint">証跡URLを入力すると報告できます。</p>
-      )}
       {error && <p className="text-[11px] text-neg">{error}</p>}
     </section>
   );

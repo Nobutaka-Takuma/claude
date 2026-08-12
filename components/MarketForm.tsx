@@ -7,6 +7,28 @@ import { CATEGORIES, categoryDef } from "@/lib/categories";
 
 export type MarketKind = "match_winner" | "binary" | "multi_outcome";
 
+// datetime-local の値（"2026-08-20T19:00"）に時間を足して同じ形式で返す。
+// タイムゾーンを持たない文字列なので、Date に通さず素朴に分解して足す —
+// new Date() を挟むと、サーバー側と同じくブラウザのゾーンで解釈されて、
+// 表示している値と1日ずれることがある。
+function plusHours(value: string, hours: number): string {
+  const [date, time] = value.split("T");
+  if (!date || !time) return value;
+
+  const [y, mo, da] = date.split("-").map(Number);
+  const [h, m] = time.split(":").map(Number);
+  if ([y, mo, da, h, m].some(Number.isNaN)) return value;
+
+  // UTC として組み立てて UTC のまま取り出す。ゾーン変換を一切挟まないので、
+  // 日付をまたぐ繰り上がりだけが起きる。
+  const shifted = new Date(Date.UTC(y, mo - 1, da, h + hours, m));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}` +
+    `T${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`
+  );
+}
+
 const KIND_OPTIONS: { kind: MarketKind; label: string; hint: string }[] = [
   { kind: "binary", label: "Yes / No", hint: "例: 来週末までにドル円は156円台に到達する？" },
   { kind: "match_winner", label: "試合の勝敗", hint: "ホーム / 引分 / アウェイの3択" },
@@ -52,6 +74,7 @@ export default function MarketForm({
   const [matchweek, setMatchweek] = useState("");
   const [closesAt, setClosesAt] = useState("");
   const [resolvesAt, setResolvesAt] = useState("");
+  const [resolvesTouched, setResolvesTouched] = useState(false);
   const [description, setDescription] = useState("");
   const [customOptions, setCustomOptions] = useState(["", ""]);
   const [submitting, setSubmitting] = useState(false);
@@ -302,23 +325,34 @@ export default function MarketForm({
           required
           type="datetime-local"
           value={closesAt}
-          onChange={(e) => setClosesAt(e.target.value)}
+          onChange={(e) => {
+            setClosesAt(e.target.value);
+            // 判定日時は締切の3時間後を自動で入れる。必須の日時欄が2つ並ぶと
+            // そこで作成をやめる人がいるので、触らなくても埋まる状態にする。
+            // 自分で変えた人の値は上書きしない。
+            if (!resolvesTouched && e.target.value) {
+              setResolvesAt(plusHours(e.target.value, 3));
+            }
+          }}
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
       </label>
 
       <label className="block space-y-1">
-        <span className="text-xs text-ink-muted">結果判定の予定日時</span>
+        <span className="text-xs text-ink-muted">結果が分かる日時</span>
         <input
           required
           type="datetime-local"
           value={resolvesAt}
-          onChange={(e) => setResolvesAt(e.target.value)}
+          onChange={(e) => {
+            setResolvesTouched(true);
+            setResolvesAt(e.target.value);
+          }}
           className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
         />
         <span className="block text-[11px] text-ink-faint">
-          結果が分かる日時です。この時刻を過ぎると、結果の入力がタスクセンターに掲示され、
-          誰かが証跡付きで結果を報告できるようになります。
+          締切の3時間後を自動で入れています。結果が出るまで時間がかかるお題なら伸ばしてください。
+          この時刻を過ぎると、結果の入力がタスクセンターに掲示されます。
         </span>
       </label>
 
@@ -334,8 +368,9 @@ export default function MarketForm({
       </label>
 
       <p className="text-[11px] text-ink-faint rounded-lg border border-line bg-surface-2 px-3 py-2">
-        特定の人の死傷・私人のプライバシー・差別的な内容などは作成できません。通報が
-        {" "}{banThreshold}件集まったマーケットは停止され、作成料は返金されません。{" "}
+        判定が厳密でなくても構いません（アニメの展開予想なども歓迎です）。ただし
+        特定の人の死傷・私人のプライバシー・差別的な内容は作成できず、通報が
+        {" "}{banThreshold}件集まったマーケットは停止されます。{" "}
         <a href="/guidelines" target="_blank" rel="noopener noreferrer" className="text-accent-ink font-semibold underline">
           ガイドライン
         </a>
@@ -355,7 +390,9 @@ export default function MarketForm({
           : mode === "admin"
             ? "管理者として公開する（無料）"
             : mode === "paid"
-              ? `${creationCost}pt を支払って公開する`
+              ? creationCost === 0
+                ? "公開する"
+                : `${creationCost}pt を支払って公開する`
               : "無料で提案する"}
       </button>
 
@@ -363,7 +400,12 @@ export default function MarketForm({
         {mode === "admin"
           ? `作成料はかかりません。初期賞金${seedAmount}ptはコミュニティ金庫が負担し、的中者に分配されます。運営が場を用意する立場なので、作成者報酬は受け取りません。`
           : mode === "paid"
-            ? `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初に予想した人も勝てば増えます。さらに精算時の手数料の${creatorFeePct}%があなたに支払われます。`
+            ? creationCost === 0
+              ? // 作成料が0の間は初期賞金も0になる（賞金は作成料から出るため）。
+                // 「賞金が付く」と書いたまま0だと嘘になるので、代わりに
+                // stake-back 保証があることを言う。
+                `いまは作成料がかからないぶん、初期賞金は付きません。反対側に誰も予想しなければ賭けたポイントはそのまま戻るので、参加した人が損をすることはありません。精算時の手数料の${creatorFeePct}%はあなたの報酬になります。`
+              : `支払った${creationCost}ptのうち${seedAmount}ptが「初期賞金」としてマーケットに積まれ、的中者に分配されます（残りは運営手数料）。これにより最初に予想した人も勝てば増えます。さらに精算時の手数料の${creatorFeePct}%があなたに支払われます。`
             : `無料ですが、他のユーザーから賛成${approvalThreshold}票が集まるまで公開されません。初期賞金も作成者報酬もありません。`}
       </p>
     </form>

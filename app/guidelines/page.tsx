@@ -48,14 +48,21 @@ export default function GuidelinesPage() {
       </section>
 
       <section className="rounded-xl border border-line bg-surface p-4 space-y-3">
-        <h2 className="text-sm font-bold">良いマーケットの条件</h2>
+        <h2 className="text-sm font-bold">どんなお題を作っていい？</h2>
+        <p className="text-xs text-ink-muted">
+          <strong>厳密に判定できるものでなくて構いません。</strong>
+          「アニメの次回はこう展開する」「あの新商品は売れる」のような、
+          人によって見方が分かれるお題も歓迎です。判定はみんなの投票で決まります。
+          迷ったらまず作ってみてください。
+        </p>
         <ul className="text-xs text-ink-muted space-y-1.5 list-disc pl-4">
           <li>
-            <strong>誰が見ても同じ結果になる</strong> — 公式発表・試合結果・公開データなど、
-            出典で決着がつくこと
+            <strong>いつ結果が分かるかを決める</strong> — 「いつか実現するか」だと、
+            いつまでも精算されず、賭けたポイントが戻りません。日時を切ってください
           </li>
           <li>
-            <strong>結果が分かる日時が決まっている</strong> — 「いつか実現するか」ではなく期限を切ること
+            <strong>選択肢を読めばどちらか判断できる</strong> — 曖昧でもいいのですが、
+            「どちらとも取れる」書き方だと投票が割れて結論が出ません
           </li>
           <li>
             <strong>当事者が結果を操作できない</strong> — 身内の行動や、自分で実現できる出来事は不可
@@ -64,6 +71,10 @@ export default function GuidelinesPage() {
             <strong>対象が公人・公的な出来事である</strong> — 私人の私生活は対象にできません
           </li>
         </ul>
+        <p className="text-[11px] text-ink-faint">
+          下の「作ってはいけないマーケット」に当てはまらない限り、
+          曖昧さを理由に停止されることはありません。
+        </p>
       </section>
 
       <section className="rounded-xl border border-line bg-surface p-4 space-y-3">

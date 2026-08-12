@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth";
 import { getUserBets, getUserTreasuryLogs, type TreasuryLogWithContext } from "@/lib/data";
-import { formatDateTime, formatPoints, isPast } from "@/lib/format";
+import { formatDateTime, formatPoints, formatRelativeToNow, isPast } from "@/lib/format";
+import { provisionalState } from "@/lib/provisional";
 import { marketHeading, outcomeLabel } from "@/lib/outcome";
 import { userLedgerLabel } from "@/lib/ledgerLabels";
 import { BET_CANCEL_PENALTY } from "@/lib/config";
@@ -86,7 +87,18 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
                     {formatPoints(b.amount)}
                   </span>
                   <span className="font-mono-num font-semibold whitespace-nowrap">
-                    {b.status === "active" && "結果待ち"}
+                    {b.status === "active" &&
+                      (() => {
+                        const state = provisionalState(
+                          b.status,
+                          b.status_market,
+                          b.outcome,
+                          b.market_outcome
+                        );
+                        if (state === "hit") return <span className="text-gold">暫定 的中</span>;
+                        if (state === "miss") return <span className="text-ink-faint">暫定 不的中</span>;
+                        return "結果待ち";
+                      })()}
                     {b.status === "won" && (
                       <span className="text-accent-ink">的中 +{formatPoints(b.payout_amount)}</span>
                     )}
@@ -96,8 +108,19 @@ export default async function MyPage({ searchParams }: PageProps<"/mypage">) {
                   </span>
                 </Link>
                 <p className="text-[11px] text-ink-faint">
-                  受付締切 {formatDateTime(b.kickoff_time)} ・ 結果判定の予定{" "}
-                  {b.resolves_at ? formatDateTime(b.resolves_at) : "未設定"}
+                  {/* 暫定が出ているときは、締切より「いつ確定するか」のほうが
+                      知りたい情報になる。 */}
+                  {b.status === "active" && b.market_outcome && b.dispute_deadline ? (
+                    <>
+                      この結果のまま {formatRelativeToNow(b.dispute_deadline)} に確定します
+                      {b.status_market === "disputed" && "（異議申し立て中）"}
+                    </>
+                  ) : (
+                    <>
+                      受付締切 {formatDateTime(b.kickoff_time)} ・ 結果判定の予定{" "}
+                      {b.resolves_at ? formatDateTime(b.resolves_at) : "未設定"}
+                    </>
+                  )}
                 </p>
                 {/* Only while the market is still taking bets. Once the
                     deadline passes a prediction is locked in — being able
