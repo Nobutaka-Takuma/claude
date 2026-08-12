@@ -43,3 +43,6 @@ next-env.d.ts
 
 # smoke-test screenshots
 /scripts/shots/
+
+# 公開用アーティファクトの下書き（リポジトリには含めない）
+.artifacts/
