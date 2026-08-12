@@ -24,12 +24,17 @@ export default function SubmitResultForm({
 }) {
   const router = useRouter();
   const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const requiredBond = isAdmin ? 0 : bond;
   const canAfford = balance >= requiredBond;
   const hasEvidence = evidenceUrl.trim().length > 0;
+  // 証跡URLの代わりに必須にした根拠のコメント。10文字は「あ」で埋められる
+  // のを防ぐための下限で、日本語なら短い一文がちょうど収まる。
+  const NOTE_MIN = 10;
+  const noteOk = note.trim().length >= NOTE_MIN;
 
   async function submit(outcome: string) {
     const label = outcomeOptions.find((o) => o.key === outcome)?.label ?? outcome;
@@ -48,6 +53,7 @@ export default function SubmitResultForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         outcome,
+        resolutionNote: note.trim(),
         evidenceUrl: hasEvidence ? evidenceUrl.trim() : undefined,
       }),
     });
@@ -90,10 +96,29 @@ export default function SubmitResultForm({
         </p>
       )}
 
-      {/* 以前は証跡URLを必須にしていたが、「結果は分かっているのに貼れるURLを
-          探すのが面倒で報告しない」を大量に生んでいた。報告されないマーケットは
-          誰の得にもならない。出典が争点になるのは異議が出たときなので、
-          そこで貼れれば足りる。 */}
+      {/* URLを探すのは面倒でも、何を見てそう判断したかを一文書くのは面倒では
+          ない。証跡URLの代わりにこちらを必須にしている。これがないと、
+          見ていなかった人は異議を出すかどうかを決められない。 */}
+      <label className="block space-y-1 pt-1">
+        <span className="text-xs text-ink-muted">
+          どうしてその結果だと分かりましたか？<span className="text-neg ml-1">*</span>
+        </span>
+        <textarea
+          rows={3}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="例: 公式サイトの試合結果ページで 2-1 になっていました"
+          maxLength={1000}
+          className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
+        />
+        <span className="block text-[11px] text-ink-faint">
+          他の人はこれを読んで、異議を出すかどうかを判断します。
+          {!noteOk && note.length > 0 && (
+            <span className="text-neg"> あと{NOTE_MIN - note.trim().length}文字</span>
+          )}
+        </span>
+      </label>
+
       <label className="block space-y-1 pt-1">
         <span className="text-xs text-ink-muted">証跡URL（任意）</span>
         <input
@@ -114,7 +139,7 @@ export default function SubmitResultForm({
           <button
             key={o.key}
             type="button"
-            disabled={submitting !== null || !canAfford}
+            disabled={submitting !== null || !canAfford || !noteOk}
             onClick={() => submit(o.key)}
             className="text-xs font-bold py-2.5 rounded-lg bg-surface border border-gold text-gold disabled:opacity-50 truncate"
           >
@@ -122,6 +147,11 @@ export default function SubmitResultForm({
           </button>
         ))}
       </div>
+      {!noteOk && (
+        <p className="text-[11px] text-ink-faint">
+          根拠を{NOTE_MIN}文字以上書くと、結果を報告できます。
+        </p>
+      )}
       {error && <p className="text-[11px] text-neg">{error}</p>}
     </section>
   );

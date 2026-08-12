@@ -188,6 +188,9 @@ export interface Market {
   // Link backing the reported result, so the dispute window is usable by
   // someone who wasn't watching.
   resolution_evidence_url: string | null;
+  // 結果を報告した人が書いた根拠。証跡URLの代わりに必須なので、報告済みの
+  // マーケットには必ず入っている。
+  resolution_note: string | null;
   // Set when the community removed this market for violating the
   // guidelines, as opposed to an ordinary cancellation.
   banned_at: string | null;

@@ -208,6 +208,13 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
       {market.status === "resolved" && (
         <section className="rounded-xl border border-line bg-surface-2 p-4 space-y-1">
           <p className="text-sm font-bold">結果: {outcomeLabel(market.outcome_options, market.outcome)}</p>
+          {/* 確定後も根拠を残す。あとから「なぜこの結果になったのか」を
+              辿れないと、精算に納得できない人に説明する手段がなくなる。 */}
+          {market.resolution_note && (
+            <p className="text-xs text-ink-muted whitespace-pre-wrap break-words">
+              {market.resolution_note}
+            </p>
+          )}
           {market.resolution_evidence_url && (
             <a
               href={market.resolution_evidence_url}
@@ -231,6 +238,13 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
             {Number(market.resolution_bond) > 0 &&
               `（保証金 ${Number(market.resolution_bond).toLocaleString("ja-JP")}pt を預託中）`}
           </p>
+          {/* 異議を出すかどうかを判断する材料。証跡URLを任意にした代わりに
+              必須にしているので、報告があれば必ずここに何か入っている。 */}
+          {market.resolution_note && (
+            <p className="text-xs text-ink whitespace-pre-wrap break-words rounded-lg bg-surface p-2">
+              {market.resolution_note}
+            </p>
+          )}
           {market.resolution_evidence_url && (
             <p className="text-[11px]">
               <a

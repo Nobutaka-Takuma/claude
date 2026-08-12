@@ -224,21 +224,25 @@ export function voteMarketProposal(userId: string, marketId: string, threshold: 
 // proposedBy null = operator/batch submission (no bond). A real user
 // proposing posts `bond` points, returned if the result stands and
 // forfeited if a DAO vote overturns it.
+// p_note（根拠のコメント）は必須。証跡URLを任意にした代わりで、これがないと
+// 異議申し立て期間に判断材料が何も残らない。
 export function submitProvisionalResult(
   marketId: string,
   outcome: string,
   disputeWindowMinutes: number,
   proposedBy: string | null = null,
   bond = 0,
-  evidenceUrl: string | null = null
+  evidenceUrl: string | null = null,
+  note: string | null = null
 ) {
-  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3, $4, $5, $6)", [
+  return callRpc<Market>("select * from submit_provisional_result($1, $2, $3, $4, $5, $6, $7)", [
     marketId,
     outcome,
     disputeWindowMinutes,
     proposedBy,
     bond,
     evidenceUrl,
+    note,
   ]);
 }
 

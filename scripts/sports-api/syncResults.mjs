@@ -62,11 +62,18 @@ export async function syncResults(pool, { log = () => {}, allowMock = false } = 
     }
 
     const outcome = scoreToOutcome(result.homeScore, result.awayScore);
-    await pool.query("select * from submit_provisional_result($1, $2, $3, null, 0, $4)", [
+    // 根拠のコメントは人の報告と同じく必須。自動取得でも「何を見てそう
+    // 判断したか」が残っていないと、異議を出すか決められないのは同じ。
+    const note =
+      `${provider.name} から取得した試合結果: ` +
+      `${market.home_team} ${result.homeScore} - ${result.awayScore} ${market.away_team}`;
+
+    await pool.query("select * from submit_provisional_result($1, $2, $3, null, 0, $4, $5)", [
       market.id,
       outcome,
       disputeWindow,
       result.sourceUrl ?? null,
+      note,
     ]);
 
     log(

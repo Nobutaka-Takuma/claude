@@ -33,6 +33,8 @@ export const API_ERROR_MESSAGES: Record<string, string> = {
   resolves_at_before_close: "結果判定の予定日時は、ベット締切より後にしてください。",
   resolves_at_required: "結果判定の予定日時を入力してください。",
   evidence_required: "結果の証跡URLを入力してください。",
+  resolution_note_required:
+    "どうしてその結果だと分かったのかを、10文字以上で書いてください。他の人が異議を出すか判断する材料になります。",
   invalid_evidence_url: "証跡URLは http:// または https:// で始まる形式で入力してください。",
   insufficient_treasury: "コミュニティ金庫の残高が不足しているため、初期賞金を用意できません。",
   already_reported: "このマーケットは既に通報済みです。",
@@ -90,6 +92,7 @@ export const FIELD_ERROR_MESSAGES: Record<string, string> = {
   kickoffTime: "ベット締切日時を入力してください。",
   resolvesAt: "結果判定の予定日時を入力してください。",
   evidenceUrl: "証跡URLは http:// または https:// で始まる形式で入力してください。",
+  resolutionNote: "どうしてその結果だと分かったのかを、10文字以上で書いてください。",
   homeTeam: "ホームチーム名を入力してください。",
   awayTeam: "アウェイチーム名を入力してください。",
   outcomeOptions: "選択肢は2〜8個、それぞれ空欄でなく入力してください。",

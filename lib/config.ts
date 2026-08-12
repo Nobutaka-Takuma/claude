@@ -48,10 +48,10 @@ export const RESOLUTION_BOND = () => intFromEnv("RESOLUTION_BOND", 100);
 // is not an incentive — it's what happens if you do nothing — so this is
 // the actual wage for checking a source and reporting it. Funded by the
 // slice of each market's creation fee the treasury keeps.
-// 10pt では「保証金100ptを預けて、証跡を探して報告する」割に合わなかった。
-// 報告されないマーケットは誰の得にもならないので、保証金と同額まで上げて
-// いる（当たれば預けた分が戻り、さらに同額が乗る）。
-export const RESOLUTION_REWARD = () => intFromEnv("RESOLUTION_REWARD", 100);
+// 10pt では「保証金を預けて報告する」割に合わず、報告が集まらなかった。
+// 一度100ptまで上げたが、作成料が0の間これは全額が金庫からの持ち出しに
+// なるため出しすぎで、判定投票・通報と同じ30ptに揃えている。
+export const RESOLUTION_REWARD = () => intFromEnv("RESOLUTION_REWARD", 30);
 
 // How long the community has to dispute a proposed result.
 export const DISPUTE_WINDOW_MINUTES = () => intFromEnv("DISPUTE_WINDOW_MINUTES", 1440);

@@ -17,12 +17,15 @@ import { RESOLUTION_BOND, DISPUTE_WINDOW_MINUTES } from "@/lib/config";
 // stands and forfeited if a DAO vote overturns it. Admins propose without
 // a bond, since they aren't betting against the house.
 //
-// A user's report must carry an evidence URL. The dispute window is only
-// useful if someone who wasn't watching can check the claim, and "trust
-// me" isn't checkable. A correct report earns RESOLUTION_REWARD on top of
-// the returned bond once it stands.
+// A report must explain itself. The evidence URL used to be mandatory and
+// mostly stopped people reporting at all; the note replaces it. The dispute
+// window is only useful if someone who wasn't watching can decide whether
+// to object, and an outcome with no reasoning gives them nothing to go on.
+// A correct report earns RESOLUTION_REWARD on top of the returned bond
+// once it stands.
 const bodySchema = z.object({
   outcome: z.string().min(1).max(40),
+  resolutionNote: z.string().trim().min(10).max(1000),
   evidenceUrl: z.string().url().max(500).optional(),
   disputeWindowMinutes: z.number().int().positive().max(60 * 24 * 7).optional(),
 });
@@ -49,7 +52,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/markets/[market
       parsed.data.disputeWindowMinutes ?? DISPUTE_WINDOW_MINUTES(),
       isAdmin ? null : profile.id,
       isAdmin ? 0 : RESOLUTION_BOND(),
-      parsed.data.evidenceUrl ?? null
+      parsed.data.evidenceUrl ?? null,
+      parsed.data.resolutionNote
     );
     return NextResponse.json({ ok: true, market });
   } catch (err) {
