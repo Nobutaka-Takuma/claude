@@ -205,6 +205,26 @@ export default async function MarketDetailPage({ params }: PageProps<"/markets/[
         </section>
       )}
 
+      {/* 中止で終わったマーケット。「中止」バッジだけでは理由が分からず、
+          特にBANされたのか無風で終わったのかが区別できない。 */}
+      {market.status === "cancelled" && (
+        <section className="rounded-xl border border-line bg-surface-2 p-4 space-y-1">
+          <p className="text-sm font-bold">このマーケットは中止されました</p>
+          {market.ban_reason ? (
+            <p className="text-xs text-neg">{market.ban_reason}</p>
+          ) : (
+            market.resolution_note && (
+              <p className="text-xs text-ink-muted whitespace-pre-wrap break-words">
+                {market.resolution_note}
+              </p>
+            )
+          )}
+          <p className="text-[11px] text-ink-faint">
+            予想されていたポイントは全額返金されています。
+          </p>
+        </section>
+      )}
+
       {market.status === "resolved" && (
         <section className="rounded-xl border border-line bg-surface-2 p-4 space-y-1">
           <p className="text-sm font-bold">結果: {outcomeLabel(market.outcome_options, market.outcome)}</p>
